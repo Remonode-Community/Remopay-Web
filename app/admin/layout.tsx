@@ -21,6 +21,7 @@ import {
   BookOpen,
   Layers,
   Percent,
+  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -30,6 +31,8 @@ const adminNavItems = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Transactions', href: '/admin/transactions', icon: CreditCard },
+  // Transfer Provider Management
+  { label: 'Transfer Providers', href: '/admin/settings/transfer-provider', icon: Settings },
   { label: 'Airtime to Cash', href: '/admin/airtime-to-cash', icon: Phone },
   { label: 'Currency Exchange', href: '/admin/fx', icon: Globe },
   { label: 'Offer Codes', href: '/admin/offer-codes', icon: Gift },

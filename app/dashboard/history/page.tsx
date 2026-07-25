@@ -1,17 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowDownToLine,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
   Filter,
   ReceiptText,
-  Search,
-  Wallet,
-  Eye,
 } from 'lucide-react';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
@@ -31,7 +27,6 @@ import {
   TableRowSkeleton,
   MobileCardSkeleton,
   FilterSkeleton,
-  StatCardSkeleton,
 } from '@/components/shared/Skeleton';
 import { formatCurrency, formatDate } from '@/utils/format.utils';
 import { TRANSACTION_STATUSES, TRANSACTION_TYPES } from '@/utils/constants';
@@ -245,101 +240,11 @@ export default function HistoryPage() {
     fetchTransactions();
   }, [page, filters, user?.id]);
 
-  const stats = useMemo(() => {
-    const totalAmount = transactions.reduce(
-      (sum, transaction) => sum + Number(transaction.amount || 0),
-      0
-    );
-
-    const successfulCount = transactions.filter(
-      (transaction) =>
-        transaction.status?.toLowerCase() === 'success' ||
-        transaction.status?.toLowerCase() === 'completed'
-    ).length;
-
-    const pendingCount = transactions.filter(
-      (transaction) => transaction.status?.toLowerCase() === 'pending'
-    ).length;
-
-    return {
-      totalAmount,
-      successfulCount,
-      pendingCount,
-    };
-  }, [transactions]);
-
   const isInitialLoading = loading && transactions.length === 0;
   const isPaginationLoading = loading && transactions.length > 0;
 
   return (
     <div className="space-y-8">
-      <section className="overflow-x-auto pb-2 scrollbar-hide">
-        <div className="flex min-w-min gap-5">
-          {isInitialLoading ? (
-            <>
-              <div className="w-full flex-shrink-0 sm:w-96">
-                <StatCardSkeleton />
-              </div>
-              <div className="w-full flex-shrink-0 sm:w-96">
-                <StatCardSkeleton />
-              </div>
-              <div className="w-full flex-shrink-0 sm:w-96">
-                <StatCardSkeleton />
-              </div>
-            </>
-          ) : (
-            <>
-              {[
-                {
-                  label: 'Visible Volume',
-                  value: formatCurrency(stats.totalAmount),
-                  description: 'Sum of amounts shown on this page',
-                  icon: Wallet,
-                },
-                {
-                  label: 'All Time Records',
-                  value: pagination.total,
-                  description: 'Total transactions in your account',
-                  icon: CreditCard,
-                },
-                {
-                  label: 'Successful Records',
-                  value: stats.successfulCount,
-                  description: 'Successful transactions on this page',
-                  icon: ReceiptText,
-                },
-              ].map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <div key={item.label} className="w-full flex-shrink-0 sm:w-96">
-                    <Card className="rounded-[24px] border border-black/5 bg-white p-6 shadow-[0_10px_35px_rgba(16,3,3,0.05)]">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-bold text-black/45">
-                            {item.label}
-                          </p>
-                          <p className="mt-3 text-3xl font-black tracking-tight text-[#111]">
-                            {item.value}
-                          </p>
-                          <p className="mt-2 text-sm font-medium text-black/45">
-                            {item.description}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl bg-[#fff1f2] p-3">
-                          <Icon className="h-5 w-5 text-[#d71927]" />
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </div>
-      </section>
-
       <Card className="rounded-[28px] border border-black/5 bg-white p-5 shadow-[0_10px_35px_rgba(16,3,3,0.05)] sm:p-6">
         {isInitialLoading ? (
           <FilterSkeleton />

@@ -103,7 +103,7 @@ export const BankSelector = ({
             {filtered.length ? (
               filtered.map(bank => (
                 <button
-                  key={bank.id}
+                  key={bank.code}
                   onClick={() => {
                     onSelect(bank);
                     setOpen(false);
@@ -113,7 +113,7 @@ export const BankSelector = ({
                     w-full px-4 py-3 text-left text-sm
                     border-b border-white/5
                     hover:bg-white/5 transition
-                    ${selectedBank?.id === bank.id
+                    ${selectedBank?.code === bank.code
                       ? 'text-[#d71927] bg-[#d71927]/10'
                       : 'text-white/80'}
                   `}

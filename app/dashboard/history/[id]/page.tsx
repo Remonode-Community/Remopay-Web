@@ -353,6 +353,28 @@ export default function TransactionDetailPage() {
               </>
             )}
 
+            {/* ── Currency Conversion Details ── */}
+            {data.basic.transaction_type === 'Currency Conversion' && (
+              <>
+                <ReceiptDivider />
+                <div className="py-2 space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Conversion Details</p>
+                  {/* Parse description: "Currency exchange: ₦1200 → $0.85 @ 0.000712..." */}
+                  {!!(data.metadata as any)?.description && (
+                    <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 leading-6">
+                      {(data.metadata as any).description}
+                    </p>
+                  )}
+                  {!!(data.metadata as any)?.quote_reference && (
+                    <div className="flex justify-between text-xs pt-1">
+                      <span className="text-gray-400">Quote Ref</span>
+                      <span className="font-mono font-medium text-gray-700">{String((data.metadata as any).quote_reference)}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             {/* ── Airtime Conversion Details ── */}
             {isAirtimeConversion && data.source && data.source.type === 'airtime_conversion' && (
               <>

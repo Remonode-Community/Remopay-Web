@@ -3,7 +3,7 @@
  * Handles bank transfer logic, account verification, and state management
  */
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { transferService } from '@/services/transfer.service';
@@ -13,6 +13,7 @@ import {
   Bank,
   TransferValidationResult,
 } from '@/types/transfer.types';
+import { generateIdempotencyKey } from '@/utils/idempotency.utils';
 import {
   validateBankTransferForm,
   validateAccountNumber,
@@ -44,6 +45,9 @@ export const useBankTransfer = (options?: UseBankTransferOptions) => {
   const [isLoadingBanks, setIsLoadingBanks] = useState(false);
   const [isVerifyingAccount, setIsVerifyingAccount] = useState(false);
   const [transferError, setTransferError] = useState<string | null>(null);
+
+  // 🛡️ Idempotency key: persists across retries, resets on successful transfer
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   /**
    * Load list of supported banks on mount
@@ -230,12 +234,19 @@ export const useBankTransfer = (options?: UseBankTransferOptions) => {
       setTransferError(null);
 
       try {
+        // 🛡️ Generate idempotency key for this transfer attempt
+        // Reuses the same key on retry to prevent duplicate transfers
+        if (!idempotencyKeyRef.current) {
+          idempotencyKeyRef.current = generateIdempotencyKey();
+        }
+
         const payload: any = {
           account_number: formData.accountNumber,
           bank_code: formData.selectedBank.code,
           account_name: formData.accountName,
           amount: formData.amount,
           pin,
+          idempotency_key: idempotencyKeyRef.current,
         };
 
         if (formData.reason) {
@@ -245,6 +256,9 @@ export const useBankTransfer = (options?: UseBankTransferOptions) => {
         const response = await transferService.initiateBankTransfer(payload);
 
         if (response?.success) {
+          // 🛡️ Success — reset key so next transfer gets a fresh one
+          idempotencyKeyRef.current = null;
+
           addToast({
             type: 'success',
             message: `Transfer of ₦${formData.amount.toLocaleString()} to ${formData.selectedBank.name} initiated!`,
@@ -256,6 +270,8 @@ export const useBankTransfer = (options?: UseBankTransferOptions) => {
           throw new Error(response?.message || 'Transfer failed');
         }
       } catch (error: any) {
+        // 🛡️ Failure — KEEP the same idempotency_key so retry is safe
+        // The backend will return cached response instead of processing again
         const errorMsg = extractErrorMessage(error);
         setTransferError(errorMsg);
 
@@ -307,6 +323,7 @@ export const useBankTransfer = (options?: UseBankTransferOptions) => {
     });
     setValidationErrors({});
     setTransferError(null);
+    idempotencyKeyRef.current = null;
   }, []);
 
   /**

@@ -22,3 +22,4 @@ export { airtimeToCashService } from './airtime-to-cash.service';
 export { usdWalletService } from './usd-wallet.service';
 export { ledgerService } from './ledger.service';
 export { vtuSubsidyApi } from './vtu-subsidy.service';
+export { transferProviderService } from './transfer-provider.service';

@@ -31,7 +31,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           className={`px-4 py-2 rounded-lg font-medium transition-colors ${
             action.variant === 'secondary'
               ? 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-              : 'bg-[#d71927] text-[#0a0a0a] hover:bg-[#9da9ff]'
+              : 'bg-[#d71927] text-white hover:bg-[#b91420]'
           }`}
         >
           {action.label}

@@ -1,6 +1,7 @@
-/**
+0/**
  * Transfer Types
  * Comprehensive type definitions for Remopay-to-Remopay and Bank Transfers
+ * Updated July 25, 2026 - Multi-provider support
  */
 
 /**
@@ -24,13 +25,13 @@ export enum TransferStatus {
 
 /**
  * Bank-related types
+ * Updated: Bank list now returns from multi-provider API
  */
 export interface Bank {
-  id: number;
   name: string;
-  slug: string;
   code: string;
-  longcode: string;
+  type: string;
+  active: boolean;
   logo?: string;
 }
 
@@ -136,6 +137,7 @@ export interface RemopayTransferResponse {
 
 /**
  * Bank Transfer types
+ * Updated: Backend auto-selects provider; response includes provider info
  */
 export interface BankTransferRequest {
   account_number: string; // 10 digits
@@ -144,20 +146,19 @@ export interface BankTransferRequest {
   amount: number; // In NGN
   reason?: string;
   pin: string; // 4-digit PIN
+  idempotency_key?: string; // 🛡️ Prevents duplicate transfers on retry
 }
 
 export interface BankTransferResponse {
   success: boolean;
-  data: {
-    id: number;
-    transfer_code: string;
-    recipient_code: string;
-    amount: number;
-    status: TransferStatus;
-    initiated_at: string;
-  };
-  environment: string;
+  reference: string;
+  provider: string;
+  provider_reference: string;
+  amount: number;
+  status: string;
   message: string;
+  all_providers_down?: boolean;
+  data?: Omit<BankTransferResponse, 'data'>;
 }
 
 /**

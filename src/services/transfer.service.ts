@@ -1,6 +1,7 @@
 /**
  * Transfer Service
  * Handles all transfer-related API calls: Remopay transfers, bank transfers, and recipient management
+ * Updated July 25, 2026 - Multi-provider bank transfer support
  */
 
 import { apiClient } from './api-client';
@@ -21,12 +22,14 @@ import {
 
 class TransferService {
   /**
-   * Fetch list of supported banks
+   * Fetch list of supported banks from a specific provider
+   * If provider is omitted, uses the admin-configured default provider
    * Public endpoint, no auth required
    */
-  async getBanks(): Promise<Bank[] | null> {
+  async getBanks(provider?: string): Promise<Bank[] | null> {
     try {
-      const response = (await apiClient.get('/payment/banks')) as any;
+      const params = provider ? `?provider=${provider}` : '';
+      const response = (await apiClient.get(`/payment/banks${params}`)) as any;
       if (response && response.data) {
         return response.data;
       }
@@ -112,10 +115,16 @@ class TransferService {
   /**
    * Resolve bank account details
    * Used to verify account number and fetch account holder name
+   * Optional provider param to specify which provider to use for resolution
    */
-  async resolveBankAccount(bankCode: string, accountNumber: string): Promise<AccountResolutionResponse | null> {
+  async resolveBankAccount(
+    bankCode: string,
+    accountNumber: string,
+    provider?: string
+  ): Promise<AccountResolutionResponse | null> {
     try {
-      const response = (await apiClient.post('/payment/resolve-account', {
+      const params = provider ? `?provider=${provider}` : '';
+      const response = (await apiClient.post(`/payment/resolve-account${params}`, {
         bank_code: bankCode,
         account_number: accountNumber,
       })) as any;
@@ -129,6 +138,7 @@ class TransferService {
   /**
    * Initiate bank transfer
    * Account must be verified before calling this
+   * Backend auto-selects the best provider
    */
   async initiateBankTransfer(payload: BankTransferRequest): Promise<BankTransferResponse | null> {
     try {
