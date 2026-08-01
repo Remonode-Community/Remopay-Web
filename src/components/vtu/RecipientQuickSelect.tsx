@@ -42,26 +42,23 @@ export const RecipientQuickSelect: React.FC<RecipientQuickSelectProps> = ({
   }) => (
     <button
       onClick={() => onSelect(recipient)}
-      className="group flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+      className="group flex flex-shrink-0 items-center gap-2.5 rounded-lg border border-gray-200 bg-white px-3 py-2.5 transition-all hover:border-blue-500 hover:bg-blue-50"
       type="button"
       title={recipient.recipient_name || recipient.credential}
     >
       <div className="flex-shrink-0 text-gray-400 group-hover:text-blue-500 transition">
         {icon}
       </div>
-      <div className="min-w-0 flex-1 text-left">
-        <p className="text-sm font-medium text-gray-900 truncate">
+      <div className="min-w-0 text-left">
+        <p className="max-w-[140px] truncate text-sm font-medium text-gray-900">
           {recipient.credential}
         </p>
         {recipient.recipient_name && (
-          <p className="text-xs text-gray-500 truncate">{recipient.recipient_name}</p>
+          <p className="max-w-[140px] truncate text-xs text-gray-500">
+            {recipient.recipient_name}
+          </p>
         )}
       </div>
-      {recipient.usage_count > 0 && (
-        <span className="flex-shrink-0 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-          {recipient.usage_count}x
-        </span>
-      )}
     </button>
   );
 
@@ -74,7 +71,7 @@ export const RecipientQuickSelect: React.FC<RecipientQuickSelectProps> = ({
             <Clock className="h-4 w-4 text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-700">Recently Used</h3>
           </div>
-          <div className="space-y-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {displayRecent.map((recipient) => (
               <RecipientChip
                 key={recipient.id}
@@ -93,7 +90,7 @@ export const RecipientQuickSelect: React.FC<RecipientQuickSelectProps> = ({
             <TrendingUp className="h-4 w-4 text-gray-500" />
             <h3 className="text-sm font-semibold text-gray-700">Frequently Used</h3>
           </div>
-          <div className="space-y-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {displayFrequent.map((recipient) => (
               <RecipientChip
                 key={recipient.id}

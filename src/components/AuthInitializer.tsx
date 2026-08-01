@@ -29,8 +29,9 @@ import { FEATURES } from '@/config/features';
  *   2. Email not verified → /auth/verify-email
  *   3. Phone not verified → /auth/verify-phone
  *   4. Admin role → /admin
- *   5. Agent role → /agent
- *   6. Customer/user → /dashboard
+ *   5. Manager role → /admin/blog
+ *   6. Agent role → /agent
+ *   7. Customer/user → /dashboard
  */
 export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
@@ -154,6 +155,7 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       '/',
       '/about',
       '/careers',
+      '/blog',
       '/faq',
       '/privacy',
       '/terms',
@@ -207,6 +209,8 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
         // Fallback to primary role if activeRole is invalid/not set
         if (user.roles?.includes('admin')) {
           roleToRoute = 'admin';
+        } else if (user.roles?.includes('manager')) {
+          roleToRoute = 'manager';
         } else if (user.roles?.includes('agent')) {
           roleToRoute = 'agent';
         } else if (user.roles && user.roles.length > 0) {
@@ -217,6 +221,8 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
       // Route based on the determined role
       if (roleToRoute === 'admin') {
         correctDestination = '/admin';
+      } else if (roleToRoute === 'manager') {
+        correctDestination = '/admin/blog';
       } else if (roleToRoute === 'agent') {
         correctDestination = '/agent';
       } else {

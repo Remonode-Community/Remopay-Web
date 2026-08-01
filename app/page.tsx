@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { LandingTopbar } from '@/components/LandingTopbar';
 import { DataPricingShowcase } from '@/components/vtu-public/DataPricingShowcase';
+import { BlogSection } from '@/components/landing/BlogSection';
 
 const heroSlides = [
   {
@@ -468,6 +469,9 @@ export default function RemopayLandingPage() {
         </div>
       </section>
 
+      {/* ===== Blog Section ===== */}
+      <BlogSection />
+
       {/* ===== Download App Section ===== */}
       <section
         id="download-app"
@@ -591,7 +595,7 @@ export default function RemopayLandingPage() {
           </div>
 
           {[
-            ['Company', [['About Us', '/about'], ['Careers', '/careers'], ['Blog', '/'], ['Contact Us', '/support']]],
+            ['Company', [['About Us', '/about'], ['Careers', '/careers'], ['Blog', '/blog'], ['Contact Us', '/support']]],
             ['Help', [['FAQs', '/faq'], ['Support Center', '/support'], ['Terms of Service', '/terms'], ['Privacy Policy', '/privacy']]],
             ['Services', [['Airtime', '/vtu/airtime'], ['Data', '/vtu/data'], ['Electricity', '/vtu/bills'], ['TV Subscription', '/vtu/tv'], ['Multi-Currency', '/multi-currency'], ['More Services', '/vtu']]],
           ].map(([title, links]: any) => (

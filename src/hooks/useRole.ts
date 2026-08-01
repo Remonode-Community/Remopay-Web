@@ -8,11 +8,12 @@ export const useRole = () => {
 
   const roles = useMemo(() => user?.roles || [], [user?.roles]);
 
-  const hasRole = (role: 'user' | 'agent' | 'admin') => {
+  const hasRole = (role: 'user' | 'agent' | 'admin' | 'manager') => {
     return roles.includes(role);
   };
 
   const isAdmin = useMemo(() => hasRole('admin'), [roles]);
+  const isManager = useMemo(() => hasRole('manager'), [roles]);
   const isAgent = useMemo(() => hasRole('agent'), [roles]);
   const isUser = useMemo(() => hasRole('user'), [roles]);
 
@@ -20,6 +21,7 @@ export const useRole = () => {
     roles,
     hasRole,
     isAdmin,
+    isManager,
     isAgent,
     isUser,
   };

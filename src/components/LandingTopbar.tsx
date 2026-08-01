@@ -39,6 +39,9 @@ export function LandingTopbar() {
           <a href="#rewards" className="hover:text-[#ff4b55]">Rewards</a>
           <a href="#how" className="hover:text-[#ff4b55]">How It Works</a>
           <a href="#security" className="hover:text-[#ff4b55]">Security</a>
+          <Link href="/blog" className="hover:text-[#ff4b55]">
+            Blog
+          </Link>
           <a href="#about" className="hover:text-[#ff4b55]">About Us</a>
         </div>
 

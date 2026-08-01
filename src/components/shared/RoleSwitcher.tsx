@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Shield, Briefcase, User } from 'lucide-react';
+import { ChevronDown, Shield, Briefcase, User, Newspaper } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -44,6 +44,8 @@ export const RoleSwitcher: React.FC = () => {
     switch (role.toLowerCase()) {
       case 'admin':
         return 'bg-[#fee2e2] text-[#991b1b]';
+      case 'manager':
+        return 'bg-[#ede9fe] text-[#6d28d9]';
       case 'agent':
         return 'bg-[#dbeafe] text-[#1e40af]';
       default:
@@ -55,6 +57,8 @@ export const RoleSwitcher: React.FC = () => {
     switch (role.toLowerCase()) {
       case 'admin':
         return <Shield className="h-4 w-4" />;
+      case 'manager':
+        return <Newspaper className="h-4 w-4" />;
       case 'agent':
         return <Briefcase className="h-4 w-4" />;
       default:
@@ -66,6 +70,8 @@ export const RoleSwitcher: React.FC = () => {
     switch (role.toLowerCase()) {
       case 'admin':
         return '/admin';
+      case 'manager':
+        return '/admin/blog';
       case 'agent':
         return '/agent';
       default:

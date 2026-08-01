@@ -22,6 +22,10 @@ import {
   Layers,
   Percent,
   Settings,
+  Newspaper,
+  FolderTree,
+  Tags,
+  Mail,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -52,6 +56,13 @@ const adminNavItems = [
   { label: 'Settlement Config', href: '/admin/settlements/config', icon: FileText },
   { label: 'Settlement Batches', href: '/admin/settlements/batches', icon: Layers },
   { label: 'VTU Subsidies', href: '/admin/vtu-subsidies', icon: Percent },
+  // Blog & Newsletter Management (admin + manager)
+  { label: 'Blog Overview', href: '/admin/blog', icon: LayoutDashboard },
+  { label: 'Blog Posts', href: '/admin/blog/posts', icon: Newspaper },
+  { label: 'Categories', href: '/admin/blog/categories', icon: FolderTree },
+  { label: 'Tags', href: '/admin/blog/tags', icon: Tags },
+  { label: 'Newsletter', href: '/admin/blog/newsletter', icon: Mail },
+  { label: 'Blog Analytics', href: '/admin/blog/analytics', icon: BarChart3 },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -88,10 +99,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      // Check if user has admin role
-      const isAdmin = user.roles?.some((r) => r === 'admin');
-      if (!isAdmin) {
-        // User doesn't have admin role, let AuthInitializer handle redirect to appropriate dashboard
+      // Check if user has admin or manager role (blog & newsletter management)
+      const isStaff = user.roles?.some((r) => r === 'admin' || r === 'manager');
+      if (!isStaff) {
+        // User doesn't have staff role, let AuthInitializer handle redirect to appropriate dashboard
         router.push('/dashboard');
         return;
       }
@@ -108,19 +119,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <PageSkeleton />;
   }
 
+  const isAdmin = user?.roles?.some((r) => r === 'admin');
+  const isManager = user?.roles?.some((r) => r === 'manager');
+  // Managers only see blog & newsletter management items; admins see everything.
+  const navItems = isAdmin
+    ? adminNavItems
+    : adminNavItems.filter((item) => item.href.startsWith('/admin/blog'));
+  // Branding label in the sidebar header + home destination per role
+  const sidebarLabel = isAdmin ? 'Admin' : isManager ? 'Manager' : 'Admin';
+  const homeHref = isAdmin ? '/admin' : isManager ? '/admin/blog' : '/admin';
+
   const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
     <>
       {!mobile && (
         <div className="border-b border-white/10 px-5 py-6">
-          <Link href="/admin" className="flex items-center gap-3">
-            <Image src="/icon.png" alt="Remopay Admin" width={42} height={42} />
+          <Link href={homeHref} className="flex items-center gap-3">
+            <Image src="/icon.png" alt={`Remopay ${sidebarLabel}`} width={42} height={42} />
             {(sidebarOpen || mobile) && (
               <div>
                 <p className="text-xl font-black tracking-tight text-white">
                   Remopay
                 </p>
                 <p className="text-xs font-semibold text-white/45">
-                  Admin
+                  {sidebarLabel}
                 </p>
               </div>
             )}
@@ -129,7 +150,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-6 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent hover:scrollbar-thumb-white/40">
-        {adminNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
 
@@ -203,13 +224,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         >
           <div className="border-b border-white/10 px-5 py-5 flex items-center justify-between">
-            <Link href="/admin" className="flex items-center gap-3">
-              <Image src="/icon.png" alt="Remopay Admin" width={42} height={42} />
+            <Link href={homeHref} className="flex items-center gap-3">
+              <Image src="/icon.png" alt={`Remopay ${sidebarLabel}`} width={42} height={42} />
               <div>
                 <p className="text-xl font-black tracking-tight text-white">Remopay</p>
-                <p className="text-xs font-semibold text-white/45">Admin</p>
+                <p className="text-xs font-semibold text-white/45">{sidebarLabel}</p>
               </div>
-            </Link>                                                                                                                                                                                                                                                                                                                                                                                   
+            </Link>
             <button
               onClick={() => setMobileMenuOpen(false)}
               className="rounded-xl p-2 text-white/60 transition hover:bg-white/10 hover:text-white flex-shrink-0"

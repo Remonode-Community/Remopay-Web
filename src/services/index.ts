@@ -23,3 +23,5 @@ export { usdWalletService } from './usd-wallet.service';
 export { ledgerService } from './ledger.service';
 export { vtuSubsidyApi } from './vtu-subsidy.service';
 export { transferProviderService } from './transfer-provider.service';
+export { blogService } from './blog.service';
+export { newsletterService } from './newsletter.service';

@@ -86,6 +86,13 @@ export const useAuthRole = () => {
     },
 
     /**
+     * Check if user is manager (has manager role - blog & newsletter management)
+     */
+    isManager: (): boolean => {
+      return user?.roles?.includes('manager') ?? false;
+    },
+
+    /**
      * Check if user is agent (has agent role)
      */
     isAgent: (): boolean => {
@@ -96,7 +103,7 @@ export const useAuthRole = () => {
      * Check if user is customer (has no higher roles)
      */
     isCustomer: (): boolean => {
-      return !user?.roles || user.roles.length === 0 || (!user.roles.includes('admin') && !user.roles.includes('agent'));
+      return !user?.roles || user.roles.length === 0 || (!user.roles.includes('admin') && !user.roles.includes('manager') && !user.roles.includes('agent'));
     },
 
     /**
@@ -122,13 +129,16 @@ export const useAuthRole = () => {
      * Check if user has access to a specific dashboard
      * @param dashboardRole - The role required for a dashboard
      */
-    canAccessDashboard: (dashboardRole: 'admin' | 'agent' | 'customer'): boolean => {
+    canAccessDashboard: (dashboardRole: 'admin' | 'manager' | 'agent' | 'customer'): boolean => {
       if (!user) return false;
       
       const current = getCurrentRole();
       
       // Admin can access everything
       if (current === 'admin') return true;
+      
+      // Manager can access manager (blog) and customer dashboards
+      if (current === 'manager') return dashboardRole === 'manager' || dashboardRole === 'customer';
       
       // Agent can access agent and customer dashboards
       if (current === 'agent') return dashboardRole === 'agent' || dashboardRole === 'customer';

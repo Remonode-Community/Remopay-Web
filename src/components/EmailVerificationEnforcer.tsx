@@ -36,6 +36,7 @@ export function EmailVerificationEnforcer({ children }: { children: React.ReactN
     '/',
     '/about',
     '/careers',
+    '/blog',
     '/faq',
     '/privacy',
     '/terms',

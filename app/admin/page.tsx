@@ -72,10 +72,18 @@ export default function AdminDashboardPage() {
   const [mapleradWallets, setMapleradWallets] = useState<MapleradWalletBalancesData | null>(null);
 
   const isAdmin = useMemo(() => Boolean(user?.roles?.some((r) => r === 'admin')), [user]);
+  const isManager = useMemo(() => Boolean(user?.roles?.some((r) => r === 'manager')), [user]);
 
   useEffect(() => {
-    if (user && !isAdmin) router.push('/dashboard');
-  }, [user, isAdmin, router]);
+    if (user && !isAdmin) {
+      // Managers only have access to the blog & newsletter management area
+      if (isManager) {
+        router.push('/admin/blog');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  }, [user, isAdmin, isManager, router]);
 
   useEffect(() => {
     const fetch = async () => {

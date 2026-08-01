@@ -87,3 +87,7 @@ export * from './settlement.types';
 
 // Maplerad Wallet types
 export * from './maplerad.types';
+
+// Blog & Newsletter types
+export * from './blog.types';
+export * from './newsletter.types';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { PINSetupModal } from './shared/PINSetupModal';
 import { pinService } from '@/services/pin.service';
@@ -25,9 +25,28 @@ interface PINSetupEnforcerProps {
   children?: React.ReactNode; // Content to render (should be rendered always, with modal on top)
 }
 
+const PUBLIC_ROUTES = [
+  '/auth',
+  '/',
+  '/about',
+  '/careers',
+  '/blog',
+  '/faq',
+  '/privacy',
+  '/terms',
+  '/support',
+  '/offline',
+  '/vtu',
+  '/multi-currency',
+];
+
 export function PINSetupEnforcer({ showForNewUsers = true, children }: PINSetupEnforcerProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, pinStatus, setPinStatus, isHydrated } = useAuthStore();
+  const isPublicRoute =
+    typeof pathname === 'string' &&
+    PUBLIC_ROUTES.some((route) => (route === '/' ? pathname === '/' : pathname.startsWith(route)));
   const { success, error: alertError } = useAlert();
   const [showPINModal, setShowPINModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +60,8 @@ export function PINSetupEnforcer({ showForNewUsers = true, children }: PINSetupE
   // Check PIN status on component mount
   useEffect(() => {
     if (!isMounted || !user || !isHydrated) return;
+    // Skip PIN enforcement on public routes (e.g. blog, auth, landing pages)
+    if (isPublicRoute) return;
 
     // If PIN status not set in store, it means either:
     // 1. User just logged in (PIN status should be from login response)
@@ -133,22 +154,24 @@ export function PINSetupEnforcer({ showForNewUsers = true, children }: PINSetupE
       {/* Always render children - the page content */}
       {children}
       
-      {/* Show PIN setup modal on top if needed */}
-      <PINSetupModal
-        isOpen={showPINModal}
-        mode="setup"
-        onSubmit={handlePINSetupSubmit}
-        onSuccess={() => {
-          // PIN setup complete
-          setShowPINModal(false);
-        }}
-        onClose={() => {
-          // Users cannot close this modal until PIN is set
-          // They must complete PIN setup or can be redirected
-          // For now, we prevent closing by not handling it
-        }}
-        isLoading={isLoading}
-      />
+      {/* Show PIN setup modal on top if needed (not on public routes) */}
+      {!isPublicRoute && (
+        <PINSetupModal
+          isOpen={showPINModal}
+          mode="setup"
+          onSubmit={handlePINSetupSubmit}
+          onSuccess={() => {
+            // PIN setup complete
+            setShowPINModal(false);
+          }}
+          onClose={() => {
+            // Users cannot close this modal until PIN is set
+            // They must complete PIN setup or can be redirected
+            // For now, we prevent closing by not handling it
+          }}
+          isLoading={isLoading}
+        />
+      )}
     </>
   );
 }
