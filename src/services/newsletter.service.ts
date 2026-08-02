@@ -35,6 +35,27 @@ function buildQuery(params: Record<string, unknown>): string {
   return qs ? `?${qs}` : '';
 }
 
+/**
+ * Normalize a single-campaign response into the `{ campaign }` shape.
+ * The backend may return the campaign object directly in `data` OR wrapped as
+ * `{ campaign: {...} }`. Ensures `res.data.campaign` is always available.
+ */
+function normalizeCampaignData<T extends { campaign?: unknown }>(
+  res: ApiResponse<T>
+): ApiResponse<T> {
+  const data = res?.data as unknown;
+  if (
+    data &&
+    typeof data === 'object' &&
+    !('campaign' in (data as Record<string, unknown>)) &&
+    ('id' in (data as Record<string, unknown>) ||
+      'subject' in (data as Record<string, unknown>))
+  ) {
+    return { ...res, data: { campaign: data } as T };
+  }
+  return res;
+}
+
 class NewsletterService {
   /**
    * Campaign history (paginated)
@@ -60,10 +81,11 @@ class NewsletterService {
    * Create a campaign (draft)
    * POST /admin/blog/newsletter
    */
-  createNewsletter(
+  async createNewsletter(
     payload: CreateNewsletterRequest
   ): Promise<ApiResponse<NewsletterCreatedData>> {
-    return apiClient.post<NewsletterCreatedData>(BASE_URL, payload);
+    const res = await apiClient.post<NewsletterCreatedData>(BASE_URL, payload);
+    return normalizeCampaignData(res);
   }
 
   /**
@@ -83,8 +105,9 @@ class NewsletterService {
    * Campaign detail
    * GET /admin/blog/newsletter/{id}
    */
-  getNewsletter(id: number): Promise<ApiResponse<NewsletterSingleData>> {
-    return apiClient.get<NewsletterSingleData>(`${BASE_URL}/${id}`);
+  async getNewsletter(id: number): Promise<ApiResponse<NewsletterSingleData>> {
+    const res = await apiClient.get<NewsletterSingleData>(`${BASE_URL}/${id}`);
+    return normalizeCampaignData(res);
   }
 
   /**
@@ -157,8 +180,9 @@ class NewsletterService {
    * Delivery statistics
    * GET /admin/blog/newsletter/{id}/stats
    */
-  getStats(id: number): Promise<ApiResponse<NewsletterStatsData>> {
-    return apiClient.get<NewsletterStatsData>(`${BASE_URL}/${id}/stats`);
+  async getStats(id: number): Promise<ApiResponse<NewsletterStatsData>> {
+    const res = await apiClient.get<NewsletterStatsData>(`${BASE_URL}/${id}/stats`);
+    return normalizeCampaignData(res);
   }
 }
 

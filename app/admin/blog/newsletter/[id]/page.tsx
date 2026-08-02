@@ -27,6 +27,7 @@ import { Spinner } from '@/components/shared/Spinner';
 import { NewsletterStatusBadge } from '@/components/admin/blog/NewsletterStatusBadge';
 import { ConfirmActionModal } from '@/components/admin/blog/ConfirmActionModal';
 import { formatDate } from '@/utils/format.utils';
+import { swallowForbidden } from '@/utils/access-control.utils';
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -69,7 +70,15 @@ export default function NewsletterDetailPage() {
       setCampaign(res.data?.campaign || null);
       return res.data?.campaign || null;
     } catch (err: any) {
-      setError(err?.message || 'Failed to load campaign.');
+      // Backend 403 = current role lacks newsletter permission; show inline
+      // message instead of letting the global 403 modal hijack the page.
+      if (swallowForbidden(err)) {
+        setError(
+          'Your account does not have permission to manage newsletters. Please contact an administrator.'
+        );
+      } else {
+        setError(err?.message || 'Failed to load campaign.');
+      }
       return null;
     }
   }, [campaignId]);
@@ -365,11 +374,15 @@ export default function NewsletterDetailPage() {
         size="xl"
         closeButton
       >
-        <iframe
-          title="Email preview"
-          srcDoc={previewHtml}
-          className="h-[70vh] w-full rounded-lg border border-gray-200 bg-white"
-        />
+        {/* Render the email at ~600px width for a true WYSIWYG preview */}
+        <div className="overflow-auto rounded-lg border border-gray-200 bg-gray-100 p-3 sm:p-4">
+          <iframe
+            title="Email preview"
+            srcDoc={previewHtml}
+            sandbox="allow-same-origin"
+            className="mx-auto block h-[70vh] w-full max-w-[600px] rounded-md border border-gray-200 bg-white"
+          />
+        </div>
       </Modal>
 
       {/* Test modal */}

@@ -447,3 +447,163 @@ body {
     line-height: var(--line-height-normal);
   }
 }
+
+/* ============================================================================
+   Blog & Newsletter — Content Rendering & Typography
+   Scoped to `.blog-content` (see BlogContentRenderer / content_html contract)
+
+   NOTE: Selectors cover BOTH the class contract (`.block-*`) AND bare semantic
+   HTML tags (`h2`, `p`, `ul`, …) so content renders well regardless of whether
+   the backend ships `content_html` with classes or plain tags.
+   ============================================================================ */
+
+.blog-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.75;
+  color: #1f2937;
+  word-wrap: break-word;
+  max-width: 720px;
+}
+.blog-content > *:first-child { margin-top: 0 !important; }
+.blog-content > *:last-child { margin-bottom: 0 !important; }
+
+/* Headings */
+.blog-content .block-heading,
+.blog-content h1,
+.blog-content h2,
+.blog-content h3,
+.blog-content h4,
+.blog-content h5,
+.blog-content h6 {
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.3px;
+  line-height: 1.3;
+}
+.blog-content .block-heading--h1,
+.blog-content h1 { font-size: 30px; margin: 34px 0 14px; }
+.blog-content .block-heading--h2,
+.blog-content h2 { font-size: 24px; margin: 30px 0 12px; }
+.blog-content .block-heading--h3,
+.blog-content h3 { font-size: 20px; margin: 26px 0 10px; }
+.blog-content .block-heading--h4,
+.blog-content h4 { font-size: 18px; margin: 22px 0 8px; }
+.blog-content .block-heading--h5,
+.blog-content .block-heading--h6,
+.blog-content h5,
+.blog-content h6 { font-size: 16px; margin: 20px 0 8px; }
+
+/* Paragraphs — justified editorial text */
+.blog-content .block-paragraph,
+.blog-content p {
+  margin: 0 0 20px;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+/* Lists */
+.blog-content .block-list,
+.blog-content ul,
+.blog-content ol { margin: 0 0 22px; padding-left: 24px; }
+.blog-content .block-list li,
+.blog-content ul li,
+.blog-content ol li { margin: 0 0 8px; padding-left: 4px; }
+.blog-content .block-list--unordered li::marker,
+.blog-content ul li::marker { color: #7c1a1a; }
+.blog-content .block-list--ordered li::marker,
+.blog-content ol li::marker { color: #7c1a1a; font-weight: 700; }
+
+/* Quote */
+.blog-content .block-quote,
+.blog-content blockquote {
+  margin: 0 0 22px;
+  padding: 18px 22px;
+  border-left: 5px solid #7c1a1a;
+  background: #fdf4f4;
+  border-radius: 0 10px 10px 0;
+}
+.blog-content .block-quote p,
+.blog-content blockquote p { margin: 0; font-size: 19px; font-style: italic; line-height: 1.6; color: #374151; }
+.blog-content .block-quote footer,
+.blog-content blockquote footer { margin-top: 10px; font-size: 13px; font-weight: 600; color: #9ca3af; }
+.blog-content .block-quote footer::before,
+.blog-content blockquote footer::before { content: '— '; }
+
+/* Code */
+.blog-content .block-code,
+.blog-content pre {
+  margin: 0 0 22px;
+  padding: 18px 20px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.blog-content pre code { background: transparent; padding: 0; font-size: inherit; }
+
+/* Table */
+.blog-content .block-table-wrapper { margin: 0 0 22px; overflow-x: auto; }
+.blog-content .block-table,
+.blog-content table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 0 0 22px; }
+.blog-content .block-table th,
+.blog-content .block-table td,
+.blog-content table th,
+.blog-content table td { border: 1px solid #e5e7eb; padding: 10px 14px; text-align: left; vertical-align: top; }
+.blog-content .block-table th,
+.blog-content table th { background: #f9fafb; font-weight: 700; color: #111827; }
+.blog-content .block-table tbody tr:nth-child(even) td,
+.blog-content table tbody tr:nth-child(even) td { background: #fafafa; }
+
+/* Image */
+.blog-content .block-image { margin: 0 0 24px; text-align: center; }
+.blog-content .block-image img,
+.blog-content figure img { width: 100%; height: auto; display: block; border-radius: 10px; }
+.blog-content .block-image figcaption,
+.blog-content figure figcaption { margin-top: 8px; font-size: 13px; color: #9ca3af; font-style: italic; text-align: center; }
+
+/* Video — 16:9 responsive */
+.blog-content .block-video { margin: 0 0 24px; }
+.blog-content .video-embed { position: relative; width: 100%; height: 0; padding-top: 56.25%; background: #0f172a; border-radius: 10px; overflow: hidden; }
+.blog-content .video-embed iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+.blog-content .block-video figcaption { margin-top: 8px; font-size: 13px; color: #9ca3af; font-style: italic; text-align: center; }
+
+/* Callout */
+.blog-content .block-callout { margin: 0 0 22px; padding: 16px 18px; border-radius: 10px; font-size: 15px; line-height: 1.6; }
+.blog-content .block-callout p { margin: 0; }
+.blog-content .block-callout--info    { background: #eff6ff; color: #1e3a8a; border-left: 5px solid #3b82f6; }
+.blog-content .block-callout--warning { background: #fffbeb; color: #78350f; border-left: 5px solid #f59e0b; }
+.blog-content .block-callout--success { background: #f0fdf4; color: #14532d; border-left: 5px solid #22c55e; }
+.blog-content .block-callout--danger  { background: #fef2f2; color: #7f1d1d; border-left: 5px solid #ef4444; }
+
+/* Link */
+.blog-content .block-link { margin: 0 0 20px; }
+.blog-content a { color: #7c1a1a; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Divider */
+.blog-content .block-divider,
+.blog-content hr { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .blog-content { font-size: 16px; }
+  .blog-content h1,
+  .blog-content .block-heading--h1 { font-size: 26px; }
+  .blog-content h2,
+  .blog-content .block-heading--h2 { font-size: 21px; }
+  .blog-content p,
+  .blog-content .block-paragraph { text-align: left; } /* avoid awkward justify on small screens */
+}
+
+/* WYSIWYG editor placeholder (RichTextEditor) */
+.blog-content:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}

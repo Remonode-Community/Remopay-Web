@@ -14,12 +14,59 @@ import type {
   BlogTag,
   ContentBlock,
 } from '@/types/blog.types';
-import { validateContentBlocks, normalizeBlocks } from '@/utils/blog-blocks';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Card, CardHeader, CardBody } from '@/components/shared/Card';
-import { BlockEditor } from './BlockEditor';
+import { RichTextEditor } from './RichTextEditor';
 import { ImageUploader } from './ImageUploader';
+
+/** Convert a legacy JSON-block payload into display HTML (best effort). */
+function contentToString(content: string | ContentBlock[]): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content) || content.length === 0) return '';
+  return content
+    .map((block) => {
+      const d = block.data as Record<string, unknown>;
+      switch (block.type) {
+        case 'heading': {
+          const level = Math.min(Math.max(Number(d.level) || 2, 1), 6);
+          return `<h${level}>${String(d.text || '')}</h${level}>`;
+        }
+        case 'paragraph':
+          return `<p>${String(d.text || '')}</p>`;
+        case 'list': {
+          const items = Array.isArray(d.items) ? (d.items as string[]) : [];
+          const tag = d.style === 'ordered' ? 'ol' : 'ul';
+          return `<${tag}>${items.map((i) => `<li>${i}</li>`).join('')}</${tag}>`;
+        }
+        case 'quote':
+          return `<blockquote><p>${String(d.text || '')}</p>${
+            d.caption ? `<footer>${String(d.caption)}</footer>` : ''
+          }</blockquote>`;
+        case 'code':
+          return `<pre><code>${String(d.code || '')}</code></pre>`;
+        case 'image':
+          return `<figure><img src="${String(d.url || '')}" alt="${String(d.alt || '')}" />${
+            d.caption ? `<figcaption>${String(d.caption)}</figcaption>` : ''
+          }</figure>`;
+        case 'video':
+          return `<div class="video-embed"><iframe src="${String(d.url || '')}" allowfullscreen></iframe></div>`;
+        case 'callout':
+          return `<div class="block-callout block-callout--${String(d.type || 'info')}"><p>${String(
+            d.text || ''
+          )}</p></div>`;
+        case 'link':
+          return `<p><a href="${String(d.url || '')}" target="_blank" rel="noopener noreferrer">${String(
+            d.text || d.url || ''
+          )}</a></p>`;
+        case 'divider':
+          return '<hr />';
+        default:
+          return '';
+      }
+    })
+    .join('\n');
+}
 
 interface BlogPostFormProps {
   mode: 'create' | 'edit';
@@ -50,7 +97,7 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
   const [scheduledFor, setScheduledFor] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [newsletterEligible, setNewsletterEligible] = useState(false);
-  const [content, setContent] = useState<ContentBlock[]>([]);
+  const [content, setContent] = useState('');
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const [tagIds, setTagIds] = useState<number[]>([]);
   const [relatedPostIds, setRelatedPostIds] = useState<number[]>([]);
@@ -105,7 +152,8 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
       setScheduledFor(toDatetimeLocal(initial.scheduled_for));
       setIsFeatured(initial.is_featured || false);
       setNewsletterEligible(initial.newsletter_eligible || false);
-      setContent(Array.isArray(initial.content) ? initial.content : []);
+      // Prefer the sanitized server HTML; fall back to converting legacy JSON blocks.
+      setContent(initial.content_html || contentToString(initial.content));
       setCategoryIds(initial.category_ids || initial.categories?.map((c) => c.id) || []);
       setTagIds(initial.tag_ids || initial.tags?.map((t) => t.id) || []);
       setRelatedPostIds(initial.related_post_ids || []);
@@ -123,10 +171,8 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
 
   const buildPayload = (): { payload: AdminPostPayload; error?: string } => {
     if (!title.trim()) return { payload: {} as AdminPostPayload, error: 'Title is required.' };
-    const blocks = normalizeBlocks(content);
-    const blockErrors = validateContentBlocks(blocks);
-    if (blockErrors.length > 0) {
-      return { payload: {} as AdminPostPayload, error: blockErrors[0] };
+    if (!content || !content.trim()) {
+      return { payload: {} as AdminPostPayload, error: 'Content is required.' };
     }
     if (status === 'scheduled' && !scheduledFor) {
       return { payload: {} as AdminPostPayload, error: 'A scheduled time is required for scheduled posts.' };
@@ -154,7 +200,7 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
         title: title.trim(),
         slug: slug.trim() || undefined,
         summary: summary.trim() || null,
-        content: blocks,
+        content: content.trim(),
         cover_image: coverImage,
         featured_image: featuredImage,
         is_featured: isFeatured,
@@ -313,7 +359,7 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
               <h3 className="font-bold text-gray-900">Content</h3>
             </CardHeader>
             <CardBody>
-              <BlockEditor value={content} onChange={setContent} />
+              <RichTextEditor value={content} onChange={setContent} />
             </CardBody>
           </Card>
 

@@ -2,196 +2,119 @@ import { MetadataRoute } from 'next';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'https://gateway.remonode.com/remopay/api/v1';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://remopay.remonode.com';
+
+/** Fetch a public API JSON payload with ISR revalidation (1h). */
+async function fetchJson(path: string): Promise<{ data?: any } | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as { data?: any };
+  } catch {
+    return null;
+  }
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://remopay.remonode.com';
   const lastModified = new Date();
+  const entries: MetadataRoute.Sitemap = [];
 
-  // Main pages with highest priority
+  // ── Main pages (highest priority) ──────────────────────────────────────
   const mainPages = [
-    {
-      url: baseUrl,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified,
-      changeFrequency: 'monthly' as const,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/multi-currency`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
+    { url: `${baseUrl}`, changeFrequency: 'weekly' as const, priority: 1.0 },
+    { url: `${baseUrl}/about`, changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: `${baseUrl}/faq`, changeFrequency: 'weekly' as const, priority: 0.7 },
+    { url: `${baseUrl}/careers`, changeFrequency: 'weekly' as const, priority: 0.6 },
+    { url: `${baseUrl}/support`, changeFrequency: 'weekly' as const, priority: 0.6 },
+    { url: `${baseUrl}/multi-currency`, changeFrequency: 'weekly' as const, priority: 0.8 },
   ];
+  mainPages.forEach((p) => entries.push({ ...p, lastModified }));
 
-  // Service feature pages - high priority for SEO
-  const serviceFeaturePages = [
-    {
-      url: `${baseUrl}/services/usd-accounts`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/services/virtual-dollar-cards`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/services/virtual-topup`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/services/airtime-to-cash`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/services/money-transfer`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/services/bill-payments`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/services/international-payments`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-  ];
-
-  // VTU pages - high priority
+  // ── VTU service pages ──────────────────────────────────────────────────
   const vtuPages = [
-    {
-      url: `${baseUrl}/vtu`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/vtu/airtime`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/vtu/data`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/vtu/tv`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
-    {
-      url: `${baseUrl}/vtu/bills`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.85,
-    },
+    { url: `${baseUrl}/vtu`, changeFrequency: 'weekly' as const, priority: 0.9 },
+    { url: `${baseUrl}/vtu/airtime`, changeFrequency: 'weekly' as const, priority: 0.8 },
+    { url: `${baseUrl}/vtu/data`, changeFrequency: 'weekly' as const, priority: 0.8 },
+    { url: `${baseUrl}/vtu/tv`, changeFrequency: 'weekly' as const, priority: 0.8 },
+    { url: `${baseUrl}/vtu/bills`, changeFrequency: 'weekly' as const, priority: 0.8 },
   ];
+  vtuPages.forEach((p) => entries.push({ ...p, lastModified }));
 
-  // Informational pages - medium priority
+  // ── Legal/informational ────────────────────────────────────────────────
   const infoPages = [
-    {
-      url: `${baseUrl}/faq`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.75,
-    },
-    {
-      url: `${baseUrl}/support`,
-      lastModified,
-      changeFrequency: 'weekly' as const,
-      priority: 0.75,
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified,
-      changeFrequency: 'monthly' as const,
-      priority: 0.6,
-    },
-    {
-      url: `${baseUrl}/terms`,
-      lastModified,
-      changeFrequency: 'monthly' as const,
-      priority: 0.6,
-    },
+    { url: `${baseUrl}/privacy`, changeFrequency: 'monthly' as const, priority: 0.4 },
+    { url: `${baseUrl}/terms`, changeFrequency: 'monthly' as const, priority: 0.4 },
   ];
+  infoPages.forEach((p) => entries.push({ ...p, lastModified }));
 
-  // Auth pages - lower priority (users need to login/signup)
-  const authPages = [
-    {
-      url: `${baseUrl}/auth/login`,
-      lastModified,
-      changeFrequency: 'monthly' as const,
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/auth/register`,
-      lastModified,
-      changeFrequency: 'monthly' as const,
-      priority: 0.7, // Higher priority for signup to improve conversions
-    },
-    {
-      url: `${baseUrl}/auth/forgot-password`,
-      lastModified,
-      changeFrequency: 'monthly' as const,
-      priority: 0.4,
-    },
-  ];
+  // ── Conversion entry page ──────────────────────────────────────────────
+  entries.push({
+    url: `${baseUrl}/auth/register`,
+    lastModified,
+    changeFrequency: 'monthly',
+    priority: 0.5,
+  });
 
-  // Blog pages - medium priority, dynamic post slugs fetched from the public API
-  const blogPages: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/blog`,
-      lastModified,
-      changeFrequency: 'daily' as const,
-      priority: 0.8,
-    },
-  ];
+  // ── Blog ───────────────────────────────────────────────────────────────
+  entries.push({
+    url: `${baseUrl}/blog`,
+    lastModified,
+    changeFrequency: 'daily',
+    priority: 0.8,
+  });
 
-  try {
-    const res = await fetch(`${API_BASE_URL}/public/blog/posts?per_page=100`, {
-      headers: { Accept: 'application/json' },
-      cache: 'no-store',
-    });
-    if (res.ok) {
-      const json = (await res.json()) as {
-        data?: { items?: Array<{ slug: string; updated_at?: string }> };
-      };
-      const items = json.data?.items || [];
-      items.forEach((post) => {
-        blogPages.push({
-          url: `${baseUrl}/blog/${post.slug}`,
-          lastModified: post.updated_at ? new Date(post.updated_at) : lastModified,
-          changeFrequency: 'weekly' as const,
-          priority: 0.7,
-        });
+  // Every published post (paginate so we never cap at a single page of results).
+  const perPage = 100;
+  let page = 1;
+  let safety = 0;
+  while (safety < 50) {
+    const json = await fetchJson(`/public/blog/posts?per_page=${perPage}&page=${page}`);
+    const items: Array<{ slug: string; updated_at?: string }> = json?.data?.items || [];
+    const total = Number(json?.data?.pagination?.total) || 0;
+    if (items.length === 0) break;
+    items.forEach((post) => {
+      entries.push({
+        url: `${baseUrl}/blog/${post.slug}`,
+        lastModified: post.updated_at ? new Date(post.updated_at) : lastModified,
+        changeFrequency: 'weekly',
+        priority: 0.7,
       });
-    }
-  } catch {
-    // API unavailable — still publish the static blog entry.
+    });
+    if (page * perPage >= total) break;
+    page += 1;
+    safety += 1;
   }
 
-  // Combine all public pages - EXCLUDE dashboard, admin, agent pages
-  return [...mainPages, ...serviceFeaturePages, ...vtuPages, ...infoPages, ...blogPages, ...authPages];
+  // Category index pages
+  const catJson = await fetchJson('/public/blog/categories');
+  const categories: Array<{ slug: string }> = catJson?.data?.items || [];
+  categories.forEach((cat) => {
+    if (!cat?.slug) return;
+    entries.push({
+      url: `${baseUrl}/blog/category/${cat.slug}`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.5,
+    });
+  });
+
+  // Tag index pages
+  const tagJson = await fetchJson('/public/blog/tags');
+  const tags: Array<{ slug: string }> = tagJson?.data?.items || [];
+  tags.forEach((tag) => {
+    if (!tag?.slug) return;
+    entries.push({
+      url: `${baseUrl}/blog/tag/${tag.slug}`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.4,
+    });
+  });
+
+  // Only public pages — admin, agent, dashboard, wallet, settings, API and
+  // auth flows are intentionally excluded.
+  return entries;
 }

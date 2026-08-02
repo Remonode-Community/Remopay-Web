@@ -34,6 +34,12 @@ import type {
   NewsletterSubscribeRequest,
   PublicPostFilters,
 } from '@/types/blog.types';
+import type {
+  BlogCommentListData,
+  BlogEngagementSummary,
+  CreateBlogCommentRequest,
+  CreateBlogRatingRequest,
+} from '@/types/blog-engagement.types';
 
 const PUBLIC_BLOG = '/public/blog';
 const ADMIN_BLOG = '/admin/blog';
@@ -388,6 +394,118 @@ class BlogService {
       is_featured: isFeatured,
     });
     return this.normalizePostResponse(res);
+  }
+
+  // ─── Public: Comments, Ratings & Reviews ───────────────────────────
+
+  /**
+   * Get per-article engagement aggregates (rating count, average, star
+   * distribution, comment count) — public, no auth.
+   * GET /public/blog/posts/{slug}/engagement
+   */
+  async getEngagement(slug: string): Promise<ApiResponse<BlogEngagementSummary>> {
+    const res = await apiClient.get<BlogEngagementSummary>(
+      `${PUBLIC_BLOG}/posts/${encodeURIComponent(slug)}/engagement`
+    );
+    return this.normalizeEngagementResponse(res);
+  }
+
+  /**
+   * List public comments for an article (threaded) — public, no auth.
+   * GET /public/blog/posts/{slug}/comments
+   */
+  async getComments(
+    slug: string,
+    page: number = 1,
+    perPage: number = 20
+  ): Promise<ApiResponse<BlogCommentListData>> {
+    const qs = buildQuery({ page, per_page: Math.min(perPage, 100) });
+    return apiClient.get<BlogCommentListData>(
+      `${PUBLIC_BLOG}/posts/${encodeURIComponent(slug)}/comments${qs}`
+    );
+  }
+
+  /**
+   * Post a comment on an article — requires a signed-in user's Bearer token.
+   * POST /public/blog/posts/{slug}/comments
+   */
+  async createComment(
+    slug: string,
+    payload: CreateBlogCommentRequest
+  ): Promise<ApiResponse<unknown>> {
+    return apiClient.post<unknown>(
+      `${PUBLIC_BLOG}/posts/${encodeURIComponent(slug)}/comments`,
+      payload
+    );
+  }
+
+  /**
+   * Create or update the authenticated user's rating (1–5) with an optional
+   * review — requires auth. Upsert: one rating per user per post.
+   * POST /public/blog/posts/{slug}/rating   (singular — plural /ratings is GET-only)
+   */
+  async createRating(
+    slug: string,
+    payload: CreateBlogRatingRequest
+  ): Promise<ApiResponse<unknown>> {
+    return apiClient.post<unknown>(
+      `${PUBLIC_BLOG}/posts/${encodeURIComponent(slug)}/rating`,
+      payload
+    );
+  }
+
+  /**
+   * Normalize the engagement summary response. The backend may return the
+   * summary directly in `data`, OR wrapped as `{ engagement: {...} }` or
+   * `{ summary: {...} }`, and uses slightly different field names
+   * (`rating_avg`, `my_rating`) than the frontend contract (`average_rating`,
+   * `user_rating`). Map everything to a single BlogEngagementSummary shape.
+   */
+  private normalizeEngagementResponse(
+    res: ApiResponse<BlogEngagementSummary>
+  ): ApiResponse<BlogEngagementSummary> {
+    const raw = res?.data as unknown;
+    if (!raw || typeof raw !== 'object') return res;
+
+    const record = raw as Record<string, unknown>;
+
+    // Backend may wrap the payload as `{ engagement: {...} }` or `{ summary: {...} }`,
+    // or return the summary fields directly.
+    const nested =
+      record.engagement && typeof record.engagement === 'object'
+        ? (record.engagement as Record<string, unknown>)
+        : record.summary && typeof record.summary === 'object'
+          ? (record.summary as Record<string, unknown>)
+          : record;
+
+    const myRating =
+      typeof nested.my_rating === 'object' && nested.my_rating
+        ? (nested.my_rating as Record<string, unknown>)
+        : null;
+
+    const summary: BlogEngagementSummary = {
+      post_id: typeof nested.post_id === 'number' ? nested.post_id : undefined,
+      rating_count: typeof nested.rating_count === 'number' ? nested.rating_count : 0,
+      average_rating:
+        typeof nested.average_rating === 'number'
+          ? nested.average_rating
+          : typeof nested.rating_avg === 'number'
+            ? nested.rating_avg
+            : 0,
+      comment_count: typeof nested.comment_count === 'number' ? nested.comment_count : 0,
+      rating_distribution:
+        (nested.rating_distribution as Record<string | number, number> | undefined) ?? {},
+      user_rating:
+        typeof nested.user_rating === 'number'
+          ? (nested.user_rating as BlogEngagementSummary['user_rating'])
+          : myRating && typeof myRating.rating === 'number'
+            ? (myRating.rating as BlogEngagementSummary['user_rating'])
+            : null,
+      latest_review:
+        typeof nested.latest_review === 'string' ? nested.latest_review : null,
+    };
+
+    return { ...res, data: summary };
   }
 }
 

@@ -182,9 +182,19 @@ export interface BlogPostListItem {
   author?: BlogAuthor | null;
 }
 
-/** Full article shape (includes `content`, `seo`, `url`, `meta_tags`, `json_ld`). */
+/** Full article shape (includes `content`, `content_html`, `seo`, `url`, `meta_tags`, `json_ld`). */
 export interface BlogPost extends BlogPostListItem {
-  content: ContentBlock[];
+  /**
+   * Article body — sanitized WYSIWYG HTML (new model). Legacy JSON-block
+   * articles are auto-converted by the backend, but we keep the union for
+   * defensive handling of any cached/older payloads.
+   */
+  content: string | ContentBlock[];
+  /**
+   * Server-rendered, sanitized HTML for the article body (wrapped in
+   * `<div class="blog-content">`). Preferred for SSR/SEO injection.
+   */
+  content_html?: string | null;
   seo?: BlogSeo | null;
   url?: string | null;
   meta_tags?: BlogPostMetaTag[];
@@ -325,7 +335,8 @@ export interface AdminPostPayload {
   title: string;
   slug?: string;
   summary?: string | null;
-  content: ContentBlock[];
+  /** WYSIWYG HTML string (new model). */
+  content: string;
   cover_image?: string | null;
   featured_image?: string | null;
   is_featured?: boolean;

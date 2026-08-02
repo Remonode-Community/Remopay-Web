@@ -25,6 +25,8 @@ export function BlogPostCard({ post, className = '', featured = false }: BlogPos
         featured ? 'rounded-t-xl' : 'rounded-t-xl'
       }`}
       sizes="(max-width: 768px) 100vw, 50vw"
+      loading="lazy"
+      decoding="async"
     />
   ) : (
     <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#d71927]/10 via-gray-50 to-gray-100">

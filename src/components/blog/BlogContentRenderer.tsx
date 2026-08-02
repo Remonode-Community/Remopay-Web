@@ -12,54 +12,20 @@ import type {
   TableBlockData,
   VideoBlockData,
 } from '@/types/blog.types';
-import {
-  Info,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-} from 'lucide-react';
 
-const CALLOUT_STYLES: Record<
-  CalloutBlockData['type'],
-  { wrapper: string; icon: React.ReactNode; label: string }
-> = {
-  info: {
-    wrapper: 'border-blue-200 bg-blue-50 text-blue-900',
-    icon: <Info className="h-5 w-5 shrink-0 text-blue-600" />,
-    label: 'Info',
-  },
-  warning: {
-    wrapper: 'border-amber-200 bg-amber-50 text-amber-900',
-    icon: <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />,
-    label: 'Warning',
-  },
-  success: {
-    wrapper: 'border-green-200 bg-green-50 text-green-900',
-    icon: <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />,
-    label: 'Success',
-  },
-  danger: {
-    wrapper: 'border-red-200 bg-red-50 text-red-900',
-    icon: <XCircle className="h-5 w-5 shrink-0 text-red-600" />,
-    label: 'Danger',
-  },
-};
+type HeadingTag = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
-/** Render a single content block to JSX (server-safe). */
+/** Render a single content block to JSX (server-safe), using the shared class contract. */
 function renderBlock(block: ContentBlock, index: number): React.ReactNode {
   const key = `${block.type}-${index}`;
 
   switch (block.type) {
     case 'heading': {
       const data = block.data as HeadingBlockData;
-      const level = data.level ?? 2;
-      const Tag = `h${Math.min(Math.max(level, 1), 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+      const level = Math.min(Math.max(data.level ?? 2, 1), 6);
+      const Tag = `h${level}` as HeadingTag;
       return (
-        <Tag
-          key={key}
-          className="scroll-mt-24 font-bold tracking-tight text-gray-900"
-          style={{ fontSize: headingSize(level) }}
-        >
+        <Tag key={key} className={`block-heading block-heading--h${level}`}>
           {data.text || ''}
         </Tag>
       );
@@ -68,7 +34,7 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
     case 'paragraph': {
       const data = block.data as ParagraphBlockData;
       return (
-        <p key={key} className="text-base leading-7 text-gray-700">
+        <p key={key} className="block-paragraph">
           {data.text || ''}
         </p>
       );
@@ -81,16 +47,12 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
       return (
         <ListTag
           key={key}
-          className={
-            data.style === 'ordered'
-              ? 'list-decimal space-y-2 pl-6 text-gray-700'
-              : 'list-disc space-y-2 pl-6 text-gray-700'
-          }
+          className={`block-list ${
+            data.style === 'ordered' ? 'block-list--ordered' : 'block-list--unordered'
+          }`}
         >
           {items.map((item, i) => (
-            <li key={i} className="leading-7">
-              {item}
-            </li>
+            <li key={i}>{item}</li>
           ))}
         </ListTag>
       );
@@ -99,16 +61,9 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
     case 'quote': {
       const data = block.data as QuoteBlockData;
       return (
-        <blockquote
-          key={key}
-          className="border-l-4 border-[#d71927] bg-gray-50 px-5 py-4 text-gray-800"
-        >
-          <p className="text-lg italic leading-7">{data.text || ''}</p>
-          {data.caption && (
-            <footer className="mt-2 text-sm font-semibold text-gray-500">
-              — {data.caption}
-            </footer>
-          )}
+        <blockquote key={key} className="block-quote">
+          <p>{data.text || ''}</p>
+          {data.caption && <footer>{data.caption}</footer>}
         </blockquote>
       );
     }
@@ -116,16 +71,10 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
     case 'code': {
       const data = block.data as CodeBlockData;
       return (
-        <pre
-          key={key}
-          className="overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm leading-6 text-gray-100"
-        >
-          <code>{data.code || ''}</code>
-          {data.language && (
-            <span className="mt-2 block text-xs font-semibold uppercase tracking-wide text-gray-400">
-              {data.language}
-            </span>
-          )}
+        <pre key={key} className="block-code">
+          <code className={data.language ? `language-${data.language}` : ''}>
+            {data.code || ''}
+          </code>
         </pre>
       );
     }
@@ -135,26 +84,22 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
       const columns = Array.isArray(data.columns) ? data.columns : [];
       const rows = Array.isArray(data.rows) ? data.rows : [];
       return (
-        <div key={key} className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50">
-                {columns.map((col, i) => (
-                  <th key={i} className="px-4 py-3 font-semibold text-gray-700">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+        <div key={key} className="block-table-wrapper">
+          <table className="block-table">
+            {columns.length > 0 && (
+              <thead>
+                <tr>
+                  {columns.map((col, i) => (
+                    <th key={i}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+            )}
             <tbody>
               {rows.map((row, r) => (
-                <tr key={r} className="border-b border-gray-100 last:border-0">
+                <tr key={r}>
                   {Array.isArray(row)
-                    ? row.map((cell, c) => (
-                        <td key={c} className="px-4 py-3 text-gray-700">
-                          {cell}
-                        </td>
-                      ))
+                    ? row.map((cell, c) => <td key={c}>{cell}</td>)
                     : null}
                 </tr>
               ))}
@@ -168,18 +113,14 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
       const data = block.data as ImageBlockData;
       if (!data.url) return null;
       return (
-        <figure key={key} className="space-y-2">
+        <figure key={key} className="block-image">
           <img
             src={data.url}
             alt={data.alt || ''}
-            className="mx-auto w-full max-w-2xl rounded-lg object-cover"
             loading="lazy"
+            decoding="async"
           />
-          {data.caption && (
-            <figcaption className="text-center text-sm text-gray-500">
-              {data.caption}
-            </figcaption>
-          )}
+          {data.caption && <figcaption>{data.caption}</figcaption>}
         </figure>
       );
     }
@@ -188,34 +129,23 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
       const data = block.data as VideoBlockData;
       if (!data.url) return null;
       return (
-        <figure key={key} className="space-y-2">
-          <video
-            src={data.url}
-            controls
-            className="mx-auto w-full max-w-2xl rounded-lg"
-          />
-          {data.caption && (
-            <figcaption className="text-center text-sm text-gray-500">
-              {data.caption}
-            </figcaption>
-          )}
+        <figure key={key} className="block-video">
+          <div className="video-embed">
+            <iframe src={data.url} title={data.caption || 'Embedded video'} allowFullScreen />
+          </div>
+          {data.caption && <figcaption>{data.caption}</figcaption>}
         </figure>
       );
     }
 
     case 'callout': {
       const data = block.data as CalloutBlockData;
-      const style = CALLOUT_STYLES[data.type] || CALLOUT_STYLES.info;
       return (
         <div
           key={key}
-          className={`flex items-start gap-3 rounded-lg border p-4 ${style.wrapper}`}
+          className={`block-callout block-callout--${data.type || 'info'}`}
         >
-          {style.icon}
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wide">{style.label}</p>
-            <p className="mt-1 text-sm leading-6">{data.text || ''}</p>
-          </div>
+          <p>{data.text || ''}</p>
         </div>
       );
     }
@@ -223,13 +153,8 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
     case 'link': {
       const data = block.data as LinkBlockData;
       return (
-        <p key={key}>
-          <a
-            href={data.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-[#d71927] underline underline-offset-4 hover:text-[#b91420]"
-          >
+        <p key={key} className="block-link">
+          <a href={data.url} target="_blank" rel="noopener noreferrer">
             {data.text || data.url}
           </a>
         </p>
@@ -237,27 +162,10 @@ function renderBlock(block: ContentBlock, index: number): React.ReactNode {
     }
 
     case 'divider':
-      return <hr key={key} className="border-gray-200" />;
+      return <hr key={key} className="block-divider" />;
 
     default:
       return null;
-  }
-}
-
-function headingSize(level: number): string {
-  switch (level) {
-    case 1:
-      return '2.25rem';
-    case 2:
-      return '1.875rem';
-    case 3:
-      return '1.5rem';
-    case 4:
-      return '1.25rem';
-    case 5:
-      return '1.125rem';
-    default:
-      return '1rem';
   }
 }
 
@@ -266,7 +174,11 @@ interface BlogContentRendererProps {
   className?: string;
 }
 
-/** Renders a JSON array of content blocks (server-safe, no client hooks). */
+/**
+ * Renders a JSON array of content blocks (server-safe, no client hooks).
+ * Emits the shared `.blog-content` / `.block-*` class contract so the
+ * stylesheet in globals.css (section 5 of the rendering guide) applies.
+ */
 export function BlogContentRenderer({ blocks, className }: BlogContentRendererProps) {
   if (!Array.isArray(blocks) || blocks.length === 0) {
     return (
@@ -276,7 +188,7 @@ export function BlogContentRenderer({ blocks, className }: BlogContentRendererPr
 
   return (
     <div className={className}>
-      <div className="space-y-5">
+      <div className="blog-content">
         {blocks.map((block, index) => renderBlock(block, index))}
       </div>
     </div>

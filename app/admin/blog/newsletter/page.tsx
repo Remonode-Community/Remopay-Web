@@ -13,6 +13,7 @@ import { Select } from '@/components/shared/Select';
 import { Spinner } from '@/components/shared/Spinner';
 import { NewsletterStatusBadge } from '@/components/admin/blog/NewsletterStatusBadge';
 import { formatDate } from '@/utils/format.utils';
+import { swallowForbidden } from '@/utils/access-control.utils';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -34,9 +35,11 @@ export default function NewsletterHistoryPage() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const fetchData = useCallback(async (p = 1, s = search, st = status) => {
     setLoading(true);
+    setAccessDenied(false);
     try {
       const res = await newsletterService.listNewsletters(
         { search: s || undefined, status: (st as any) || undefined },
@@ -47,8 +50,14 @@ export default function NewsletterHistoryPage() {
       setTotal(res.data?.pagination?.total || 0);
       setTotalPages(res.data?.pagination?.last_page || 1);
       setPage(p);
-    } catch {
-      addToast({ type: 'error', message: 'Failed to load newsletters.' });
+    } catch (err: unknown) {
+      // The backend returns 403 when the current role lacks newsletter permission.
+      // Swallow the global 403 modal and show a clear inline message instead.
+      if (swallowForbidden(err)) {
+        setAccessDenied(true);
+      } else {
+        addToast({ type: 'error', message: 'Failed to load newsletters.' });
+      }
     } finally {
       setLoading(false);
     }
@@ -74,6 +83,18 @@ export default function NewsletterHistoryPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Access denied (403 from backend for current role) */}
+      {accessDenied && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-8 text-center">
+          <p className="text-sm font-semibold text-red-700">
+            Your account does not have permission to manage newsletters.
+          </p>
+          <p className="mt-2 text-sm text-red-600">
+            Please contact an administrator to request newsletter management access.
+          </p>
+        </div>
+      )}
 
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3">

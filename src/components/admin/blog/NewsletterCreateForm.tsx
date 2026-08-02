@@ -7,12 +7,14 @@ import { newsletterService } from '@/services/newsletter.service';
 import { blogService } from '@/services/blog.service';
 import { adminService } from '@/services/admin.service';
 import { useUIStore } from '@/store/ui.store';
+import { useAuthRole } from '@/hooks/useAuthRole';
 import type { NewsletterAudienceType, NewsletterCampaign } from '@/types/newsletter.types';
 import type { AdminUser } from '@/types/api.types';
 import type { BlogPost } from '@/types/blog.types';
 import { Button } from '@/components/shared/Button';
 import { Input } from '@/components/shared/Input';
 import { Card, CardHeader, CardBody } from '@/components/shared/Card';
+import { swallowForbidden } from '@/utils/access-control.utils';
 
 const AUDIENCE_OPTIONS: { value: NewsletterAudienceType; label: string }[] = [
   { value: 'all_users', label: 'All registered users' },
@@ -24,6 +26,7 @@ const AUDIENCE_OPTIONS: { value: NewsletterAudienceType; label: string }[] = [
 export function NewsletterCreateForm() {
   const router = useRouter();
   const { addToast } = useUIStore();
+  const { isAdmin } = useAuthRole();
 
   const [blogPostId, setBlogPostId] = useState<number | ''>('');
   const [subject, setSubject] = useState('');
@@ -42,21 +45,39 @@ export function NewsletterCreateForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Only admins can fetch the full user list (`/admin/users`). Managers don't
+  // have that permission, so the "selected_users" audience is hidden for them.
+  const canSelectUsers = isAdmin();
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoadingMeta(true);
       try {
-        const [postsRes, usersRes] = await Promise.all([
-          blogService.listPosts({ status: 'published', sort: 'newest' }, 1, 50),
-          adminService.getUsers(1, 50),
-        ]);
+        // Load posts and users independently so a 403 on one (e.g. the
+        // admin-only /admin/users endpoint for managers) does not block the
+        // other. The article list must always load.
+        const postsPromise = blogService.listPosts(
+          { status: 'published', sort: 'newest' },
+          1,
+          50
+        );
+        const usersPromise = canSelectUsers
+          ? adminService.getUsers(1, 50)
+          : Promise.resolve(null);
+
+        const [postsRes, usersRes] = await Promise.all([postsPromise, usersPromise]);
         if (cancelled) return;
         setPosts(postsRes.data?.items || []);
-        const userData = (usersRes.data as any)?.data || (usersRes.data as any)?.users || [];
-        setUsers(Array.isArray(userData) ? userData : []);
-      } catch {
-        // Non-critical
+        if (usersRes) {
+          const userData =
+            (usersRes.data as any)?.data || (usersRes.data as any)?.users || [];
+          setUsers(Array.isArray(userData) ? userData : []);
+        }
+      } catch (err: unknown) {
+        // Only run when canSelectUsers is true; swallow the global 403 modal
+        // and keep the rest of the form usable.
+        swallowForbidden(err);
       } finally {
         if (!cancelled) setLoadingMeta(false);
       }
@@ -65,7 +86,7 @@ export function NewsletterCreateForm() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [canSelectUsers]);
 
   const filteredUsers = users.filter((user) => {
     const q = userSearch.toLowerCase();
@@ -102,7 +123,12 @@ export function NewsletterCreateForm() {
         setError(res.message || 'Could not calculate audience.');
       }
     } catch (err: any) {
-      if (audienceType === 'segment' && segmentCriteria.trim()) {
+      // Backend 403 = current role lacks newsletter permission.
+      if (swallowForbidden(err)) {
+        setError(
+          'Your account does not have permission to manage newsletters. Please contact an administrator.'
+        );
+      } else if (audienceType === 'segment' && segmentCriteria.trim()) {
         setError('Segment criteria must be valid JSON.');
       } else {
         setError(err?.message || 'Could not calculate audience.');
@@ -150,6 +176,13 @@ export function NewsletterCreateForm() {
       router.push(`/admin/blog/newsletter/${campaign?.id || res.data?.campaign?.id}`);
       router.refresh();
     } catch (err: any) {
+      // Backend 403 = current role lacks newsletter permission.
+      if (swallowForbidden(err)) {
+        setError(
+          'Your account does not have permission to manage newsletters. Please contact an administrator.'
+        );
+        return;
+      }
       const details = err?.errors?.details || err?.errors;
       setError(
         details?.blog_post_id?.[0] ||
@@ -243,7 +276,9 @@ export function NewsletterCreateForm() {
               }}
               className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-[#d71927]/20"
             >
-              {AUDIENCE_OPTIONS.map((opt) => (
+              {AUDIENCE_OPTIONS.filter(
+                (opt) => canSelectUsers || opt.value !== 'selected_users'
+              ).map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -251,7 +286,7 @@ export function NewsletterCreateForm() {
             </select>
           </label>
 
-          {audienceType === 'selected_users' && (
+          {canSelectUsers && audienceType === 'selected_users' && (
             <div>
               <Input
                 label="Filter users"
