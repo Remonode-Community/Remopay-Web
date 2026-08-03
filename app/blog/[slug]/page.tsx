@@ -11,6 +11,7 @@ import { TagPill } from '@/components/blog/TagPill';
 import { RelatedPosts } from '@/components/blog/RelatedPosts';
 import { NewsletterSubscribeForm } from '@/components/blog/NewsletterSubscribeForm';
 import { EngagementSidebar } from '@/components/blog/engagement/EngagementSidebar';
+import { ShareButtons } from '@/components/blog/ShareButtons';
 import { formatDate } from '@/utils/format.utils';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://remopay.remonode.com';
@@ -250,6 +251,10 @@ export default async function BlogPostPage({ params }: PageProps) {
               <span className="flex items-center gap-1.5">
                 <Eye size={15} /> {post.view_count?.toLocaleString?.() ?? 0} views
               </span>
+            </div>
+
+            <div className="mt-5">
+              <ShareButtons title={post.title} slug={post.slug} />
             </div>
           </div>
         </header>

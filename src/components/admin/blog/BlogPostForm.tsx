@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Plus } from 'lucide-react';
 import { blogService } from '@/services/blog.service';
 import { useUIStore } from '@/store/ui.store';
 import type {
@@ -68,6 +68,69 @@ function contentToString(content: string | ContentBlock[]): string {
     .join('\n');
 }
 
+/** Compact inline "+ Add" control for creating a category/tag without leaving the post form. */
+function InlineCreate({
+  onSubmit,
+  loading,
+  placeholder,
+  buttonLabel,
+  className = '',
+}: {
+  onSubmit: (name: string) => Promise<void>;
+  loading: boolean;
+  placeholder: string;
+  buttonLabel: string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('');
+
+  const submit = async () => {
+    const name = value.trim();
+    if (!name) return;
+    await onSubmit(name);
+    setValue('');
+    setOpen(false);
+  };
+
+  return (
+    <div className={className}>
+      {open ? (
+        <div className="flex gap-2">
+          <input
+            autoFocus
+            type="text"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submit();
+              if (e.key === 'Escape') setOpen(false);
+            }}
+            placeholder={placeholder}
+            className="w-full min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-[#d71927]/20"
+          />
+          <button
+            type="button"
+            onClick={submit}
+            disabled={loading}
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#d71927] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#b91420] disabled:opacity-50"
+          >
+            {loading ? 'Adding…' : buttonLabel}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-2.5 py-1 text-xs font-semibold text-gray-500 transition hover:border-[#d71927] hover:text-[#d71927]"
+        >
+          <Plus size={14} /> Add {buttonLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface BlogPostFormProps {
   mode: 'create' | 'edit';
   postId?: number;
@@ -112,8 +175,13 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
   const [tags, setTags] = useState<BlogTag[]>([]);
   const [relatedPosts, setRelatedPosts] = useState<BlogPostListItem[]>([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingSave, setSavingSave] = useState(false);
+  const [savingPublish, setSavingPublish] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hydrated = useRef(false);
+
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [creatingTag, setCreatingTag] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,7 +210,10 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
   }, []);
 
   useEffect(() => {
-    if (initial) {
+    // Hydrate once — never reset user edits (e.g. a status change) if `initial`
+    // changes identity on a re-render.
+    if (initial && !hydrated.current) {
+      hydrated.current = true;
       setTitle(initial.title || '');
       setSlug(initial.slug || '');
       setSummary(initial.summary || '');
@@ -157,17 +228,85 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
       setCategoryIds(initial.category_ids || initial.categories?.map((c) => c.id) || []);
       setTagIds(initial.tag_ids || initial.tags?.map((t) => t.id) || []);
       setRelatedPostIds(initial.related_post_ids || []);
-      setSeoTitle(initial.seo_title || '');
-      setSeoDescription(initial.seo_description || '');
-      setSeoKeywords((initial.seo_keywords || []).join(', '));
-      setCanonicalUrl(initial.canonical_url || '');
-      setOgMeta(initial.og_meta ? JSON.stringify(initial.og_meta, null, 2) : '');
-      setTwitterMeta(initial.twitter_meta ? JSON.stringify(initial.twitter_meta, null, 2) : '');
+      // SEO may be returned nested under `initial.seo` OR at the top level.
+      setSeoTitle(initial.seo?.title || initial.seo_title || '');
+      setSeoDescription(initial.seo?.description || initial.seo_description || '');
+      const keywordsValue: unknown = initial.seo?.keywords ?? initial.seo_keywords;
+      setSeoKeywords(
+        Array.isArray(keywordsValue)
+          ? (keywordsValue as string[]).join(', ')
+          : typeof keywordsValue === 'string'
+            ? keywordsValue
+            : ''
+      );
+      setCanonicalUrl(initial.seo?.canonical_url || initial.canonical_url || '');
+      const ogMeta = initial.seo?.og_meta || initial.og_meta;
+      setOgMeta(ogMeta ? JSON.stringify(ogMeta, null, 2) : '');
+      const twitterMeta = initial.seo?.twitter_meta || initial.twitter_meta;
+      setTwitterMeta(twitterMeta ? JSON.stringify(twitterMeta, null, 2) : '');
     }
   }, [initial]);
 
   const toggleId = (list: number[], id: number): number[] =>
     list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+
+  const handleCreateCategory = async (name: string) => {
+    setCreatingCategory(true);
+    try {
+      const res = await blogService.createCategory({ name });
+      if (res.success && res.data) {
+        const raw = res.data as unknown;
+        const item = (raw as { item?: BlogCategory } | null)?.item;
+        const wrapped = (raw as { category?: BlogCategory } | null)?.category;
+        const created: unknown = item ?? wrapped ?? raw;
+        if (
+          created &&
+          typeof created === 'object' &&
+          'id' in (created as Record<string, unknown>)
+        ) {
+          const cat = created as BlogCategory;
+          setCategories((prev) => (prev.some((c) => c.id === cat.id) ? prev : [...prev, cat]));
+          setCategoryIds((prev) => (prev.includes(cat.id) ? prev : [...prev, cat.id]));
+          addToast({ type: 'success', message: 'Category created and added.' });
+        }
+      } else {
+        addToast({ type: 'error', message: res.message || 'Failed to create category.' });
+      }
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Failed to create category.' });
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
+  const handleCreateTag = async (name: string) => {
+    setCreatingTag(true);
+    try {
+      const res = await blogService.createTag({ name });
+      if (res.success && res.data) {
+        const raw = res.data as unknown;
+        const item = (raw as { item?: BlogTag } | null)?.item;
+        const wrapped = (raw as { tag?: BlogTag } | null)?.tag;
+        const created: unknown = item ?? wrapped ?? raw;
+        if (
+          created &&
+          typeof created === 'object' &&
+          'id' in (created as Record<string, unknown>)
+        ) {
+          const tag = created as BlogTag;
+          setTags((prev) => (prev.some((t) => t.id === tag.id) ? prev : [...prev, tag]));
+          setTagIds((prev) => (prev.includes(tag.id) ? prev : [...prev, tag.id]));
+          addToast({ type: 'success', message: 'Tag created and added.' });
+        }
+      } else {
+        addToast({ type: 'error', message: res.message || 'Failed to create tag.' });
+      }
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Failed to create tag.' });
+    } finally {
+      setCreatingTag(false);
+    }
+  };
 
   const buildPayload = (): { payload: AdminPostPayload; error?: string } => {
     if (!title.trim()) return { payload: {} as AdminPostPayload, error: 'Title is required.' };
@@ -225,17 +364,38 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
     };
   };
 
+  /**
+   * Ensure the selected publishing status actually takes effect. The generic
+   * update endpoint may ignore `status`, so use the backend's dedicated
+   * transition endpoints for published / archived / scheduled.
+   */
+  const applyStatusTransition = async (id: number, selected: ArticleStatus) => {
+    const current = initial?.status || 'draft';
+    if (selected === current) return;
+    if (selected === 'published') {
+      await blogService.publishPost(id);
+    } else if (selected === 'archived') {
+      await blogService.archivePost(id);
+    } else if (selected === 'scheduled') {
+      if (scheduledFor) {
+        await blogService.schedulePost(id, new Date(scheduledFor).toISOString());
+      }
+    }
+    // 'draft' is applied directly via the update payload's `status` field.
+  };
+
   const handleSave = async () => {
     const { payload, error: payloadError } = buildPayload();
     if (payloadError) {
       setError(payloadError);
       return;
     }
-    setSaving(true);
+    setSavingSave(true);
     setError(null);
     try {
       if (mode === 'edit' && postId) {
         await blogService.updatePost(postId, payload);
+        await applyStatusTransition(postId, payload.status ?? 'draft');
         addToast({ type: 'success', message: 'Post updated successfully.' });
       } else {
         await blogService.createPost(payload);
@@ -254,7 +414,7 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
           'Failed to save post.'
       );
     } finally {
-      setSaving(false);
+      setSavingSave(false);
     }
   };
 
@@ -264,7 +424,7 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
       setError(payloadError);
       return;
     }
-    setSaving(true);
+    setSavingPublish(true);
     setError(null);
     try {
       let id = postId;
@@ -290,7 +450,7 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
           'Failed to publish post.'
       );
     } finally {
-      setSaving(false);
+      setSavingPublish(false);
     }
   };
 
@@ -304,10 +464,19 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
           <ArrowLeft size={16} /> Back to posts
         </button>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={handleSave} isLoading={saving}>
+          <Button
+            variant="secondary"
+            onClick={handleSave}
+            isLoading={savingSave}
+            disabled={savingSave || savingPublish}
+          >
             <Save size={16} /> Save {mode === 'edit' ? 'Changes' : 'Draft'}
           </Button>
-          <Button onClick={saveAndPublish} isLoading={saving} disabled={status === 'scheduled'}>
+          <Button
+            onClick={saveAndPublish}
+            isLoading={savingPublish}
+            disabled={status === 'scheduled' || savingSave || savingPublish}
+          >
             Save & Publish
           </Button>
         </div>
@@ -480,6 +649,13 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
                   <h3 className="font-bold text-gray-900">Categories</h3>
                 </CardHeader>
                 <CardBody>
+                  <InlineCreate
+                    onSubmit={handleCreateCategory}
+                    loading={creatingCategory}
+                    placeholder="Category name…"
+                    buttonLabel="Category"
+                    className="mb-3"
+                  />
                   {categories.length === 0 ? (
                     <p className="text-sm text-gray-500">
                       No categories yet.{' '}
@@ -513,6 +689,13 @@ export function BlogPostForm({ mode, postId, initial }: BlogPostFormProps) {
                   <h3 className="font-bold text-gray-900">Tags</h3>
                 </CardHeader>
                 <CardBody>
+                  <InlineCreate
+                    onSubmit={handleCreateTag}
+                    loading={creatingTag}
+                    placeholder="Tag name…"
+                    buttonLabel="Tag"
+                    className="mb-3"
+                  />
                   {tags.length === 0 ? (
                     <p className="text-sm text-gray-500">
                       No tags yet.{' '}

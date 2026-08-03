@@ -153,7 +153,8 @@ export interface BlogPostMetaTag {
 export interface BlogSeo {
   title: string | null;
   description: string | null;
-  keywords: string | null;
+  /** Backend may return keywords as a comma-separated string OR an array. */
+  keywords: string | string[] | null;
   canonical_url: string | null;
   og_meta: Record<string, unknown> | null;
   twitter_meta: Record<string, unknown> | null;

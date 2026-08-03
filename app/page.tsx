@@ -136,12 +136,7 @@ const whyChoose = [
   },
 ];
 
-const stats = [
-  { value: '50K+', label: 'Happy Users', icon: Users },
-  { value: '250K+', label: 'Transactions', icon: CircleDollarSign },
-  { value: '₦2B+', label: 'Total Payments', icon: Wallet },
-  { value: '99.9%', label: 'Success Rate', icon: BadgeCheck },
-];
+
 
 export default function RemopayLandingPage() {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -445,27 +440,6 @@ export default function RemopayLandingPage() {
               <p className="mt-2 text-sm text-white/60">Available Balance</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ===== Stats Section ===== */}
-      <section className="bg-white px-5 pb-12 sm:pb-14 md:pb-16 lg:px-8">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:gap-4 rounded-3xl border border-gray-200 bg-white p-4 sm:p-5 md:p-6 md:grid-cols-4 lg:p-8 shadow-sm">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-
-            return (
-              <div key={stat.label} className="flex items-center gap-3 sm:gap-4 md:gap-5 border-gray-200 md:border-r md:last:border-0">
-                <div className="flex h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 items-center justify-center rounded-full border border-red-200 bg-red-50">
-                  <Icon className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-[#d71927]" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900 sm:text-3xl">{stat.value}</p>
-                  <p className="text-xs font-semibold text-gray-500">{stat.label}</p>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </section>
 

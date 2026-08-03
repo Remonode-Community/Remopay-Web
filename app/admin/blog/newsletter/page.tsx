@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Plus, Eye, Search } from 'lucide-react';
+import { Plus, Eye, Search, RotateCcw } from 'lucide-react';
 import { newsletterService } from '@/services/newsletter.service';
 import { useUIStore } from '@/store/ui.store';
 import type { NewsletterCampaign } from '@/types/newsletter.types';
@@ -36,6 +36,7 @@ export default function NewsletterHistoryPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [accessDenied, setAccessDenied] = useState(false);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
 
   const fetchData = useCallback(async (p = 1, s = search, st = status) => {
     setLoading(true);
@@ -69,6 +70,23 @@ export default function NewsletterHistoryPage() {
   }, []);
 
   const applyFilters = () => fetchData(1);
+
+  const handleRetry = async (campaign: NewsletterCampaign) => {
+    setRetryingId(campaign.id);
+    try {
+      const res = await newsletterService.retryNewsletter(campaign.id);
+      if (res.success) {
+        addToast({ type: 'success', message: res.message || 'Retry queued — re-sending failed recipients.' });
+        fetchData(page);
+      } else {
+        addToast({ type: 'error', message: res.message || 'Failed to retry newsletter.' });
+      }
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Failed to retry newsletter.' });
+    } finally {
+      setRetryingId(null);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -180,6 +198,22 @@ export default function NewsletterHistoryPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end">
+                        {(campaign.status === 'failed' || campaign.status === 'partially_failed') && (
+                          <button
+                            type="button"
+                            onClick={() => handleRetry(campaign)}
+                            disabled={retryingId !== null}
+                            aria-label={`Retry campaign ${campaign.subject}`}
+                            title="Retry failed recipients"
+                            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-[#d71927] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {retryingId === campaign.id ? (
+                              <RotateCcw size={16} className="animate-spin" />
+                            ) : (
+                              <RotateCcw size={16} />
+                            )}
+                          </button>
+                        )}
                         <Link
                           href={`/admin/blog/newsletter/${campaign.id}`}
                           className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-[#d71927]"

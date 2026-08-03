@@ -11,6 +11,7 @@ import {
   XCircle,
   MailCheck,
   RefreshCw,
+  RotateCcw,
 } from 'lucide-react';
 import { newsletterService } from '@/services/newsletter.service';
 import { useUIStore } from '@/store/ui.store';
@@ -195,6 +196,25 @@ export default function NewsletterDetailPage() {
     }
   };
 
+  const handleRetry = async () => {
+    setActionLoading(true);
+    try {
+      const res = await newsletterService.retryNewsletter(campaignId);
+      if (res.success) {
+        addToast({ type: 'success', message: res.message || 'Retry queued — re-sending failed recipients.' });
+        refresh();
+        // The queue updates the status asynchronously; refresh again shortly after.
+        setTimeout(refresh, 3000);
+      } else {
+        addToast({ type: 'error', message: res.message || 'Failed to retry newsletter.' });
+      }
+    } catch (err: any) {
+      addToast({ type: 'error', message: err?.message || 'Failed to retry newsletter.' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-64 items-center justify-center">
@@ -216,6 +236,7 @@ export default function NewsletterDetailPage() {
   const canSend = isDraft;
   const canSchedule = isDraft;
   const canCancel = isScheduled;
+  const canRetry = campaign.status === 'failed' || campaign.status === 'partially_failed';
 
   return (
     <div className="space-y-6">
@@ -264,6 +285,11 @@ export default function NewsletterDetailPage() {
           {canCancel && (
             <Button variant="danger" onClick={handleCancel} isLoading={actionLoading}>
               <XCircle size={16} /> Cancel
+            </Button>
+          )}
+          {canRetry && (
+            <Button variant="secondary" onClick={handleRetry} isLoading={actionLoading}>
+              <RotateCcw size={16} /> Retry
             </Button>
           )}
           <Button variant="ghost" onClick={refresh}>

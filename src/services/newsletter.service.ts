@@ -142,6 +142,19 @@ class NewsletterService {
   }
 
   /**
+   * Retry a failed / partially-failed send — resets failed recipients and
+   * re-queues them. No body.
+   * POST /admin/blog/newsletter/{id}/retry
+   * Success: campaign with status "sending" (or "sent" once the queue drains).
+   * Error 422: `data.message` e.g. "Only failed or partially failed campaigns
+   * can be retried." / "No failed recipients to retry."
+   */
+  async retryNewsletter(id: number): Promise<ApiResponse<NewsletterSingleData>> {
+    const res = await apiClient.post<NewsletterSingleData>(`${BASE_URL}/${id}/retry`);
+    return normalizeCampaignData(res);
+  }
+
+  /**
    * Rendered HTML preview
    * POST /admin/blog/newsletter/{id}/preview
    */

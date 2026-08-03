@@ -190,10 +190,50 @@ class BlogService {
   // ─── Admin: Dashboard ───────────────────────────────────────────────
 
   /** GET /admin/blog/dashboard/overview */
-  getDashboardOverview(): Promise<ApiResponse<BlogDashboardOverview>> {
-    return apiClient.get<BlogDashboardOverview>(
+  async getDashboardOverview(): Promise<ApiResponse<BlogDashboardOverview>> {
+    const res = await apiClient.get<BlogDashboardOverview>(
       `${ADMIN_BLOG}/dashboard/overview`
     );
+    return this.normalizeDashboardOverview(res);
+  }
+
+  /**
+   * The backend returns all overview counts nested under `data.counts`
+   * (`total_posts`, `total_views`, `categories`, `tags`, `subscribers`, ...).
+   * Map them into the flattened BlogDashboardOverview the UI consumes.
+   */
+  private normalizeDashboardOverview(
+    res: ApiResponse<BlogDashboardOverview>
+  ): ApiResponse<BlogDashboardOverview> {
+    const raw = res?.data as unknown;
+    if (!raw || typeof raw !== 'object') return res;
+
+    const record = raw as Record<string, unknown>;
+    const counts =
+      record.counts && typeof record.counts === 'object'
+        ? (record.counts as Record<string, number>)
+        : null;
+    if (!counts) return res;
+
+    const normalized: BlogDashboardOverview = {
+      posts: {
+        total: counts.total_posts,
+        published: counts.published,
+        drafts: counts.drafts,
+        scheduled: counts.scheduled,
+        archived: counts.archived,
+        featured: counts.featured,
+      },
+      categories: counts.categories,
+      tags: counts.tags,
+      newsletter_subscribers: counts.subscribers,
+      total_views: counts.total_views,
+      recent_posts: (record.recent_posts as BlogDashboardOverview['recent_posts']) || undefined,
+      recent_campaigns:
+        (record.recent_campaigns as BlogDashboardOverview['recent_campaigns']) || undefined,
+    };
+
+    return { ...res, data: normalized };
   }
 
   /** GET /admin/blog/dashboard/analytics?months= */
