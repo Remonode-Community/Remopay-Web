@@ -217,7 +217,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   if (!isAdmin) return null;
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <div className="px-4 py-6 sm:px-6 lg:px-8"><DashboardSkeleton /></div>;
 
   if (error || !data) {
     return (
@@ -268,7 +268,7 @@ export default function AdminDashboardPage() {
         }
       `}</style>
 
-      <div className="space-y-5 sm:space-y-6">
+      <div className="space-y-5 sm:space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="min-w-0">

@@ -163,7 +163,7 @@ export function FeeTransactionsTable({
                   </div>
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-600 font-mono">
-                  {txn.card.masked_pan}
+                  {txn.card ? txn.card.masked_pan : <span className="text-gray-400 italic">N/A</span>}
                 </td>
                 <td className="px-4 py-3 text-right text-xs text-gray-600">
                   ${parseFloat(txn.provider_fee_amount).toFixed(2)}

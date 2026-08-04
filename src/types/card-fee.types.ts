@@ -155,7 +155,7 @@ export interface FeeTransaction {
   card: {
     id: number;
     masked_pan: string;
-  };
+  } | null;
 }
 
 export interface FeeTransactionsResponse {
