@@ -6,7 +6,7 @@
 import { PaginationMeta } from './api.types';
 
 // ============= Notification Type Definitions =============
-export type NotificationType = 'transaction' | 'system' | 'promotion' | 'update' | 'alert';
+export type NotificationType = 'transaction' | 'system' | 'promotion' | 'update' | 'alert' | 'support_ticket';
 export type PriorityLevel = 'low' | 'normal' | 'high';
 
 // ============= Notification Object =============

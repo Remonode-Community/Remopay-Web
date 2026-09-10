@@ -1011,3 +1011,133 @@ export interface GetVirtualAccountsResponse {
   message: string;
   data: VirtualAccountsResponse;
 }
+
+// ============= Support Ticket Types =============
+export type SupportCategory =
+  | 'general'
+  | 'transaction_issue'
+  | 'wallet_issue'
+  | 'account_issue'
+  | 'card_issue'
+  | 'airtime_data'
+  | 'transfer_issue'
+  | 'kyc_verification'
+  | 'bug_report'
+  | 'feature_request'
+  | 'other';
+
+export type SupportPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type SupportStatus =
+  | 'open'
+  | 'in_progress'
+  | 'awaiting_user_response'
+  | 'awaiting_agent_response'
+  | 'resolved'
+  | 'closed';
+
+export interface SupportTicket {
+  id: number;
+  user_id: number;
+  ticket_number: string;
+  subject: string;
+  description: string;
+  category: SupportCategory;
+  priority: SupportPriority;
+  status: SupportStatus;
+  status_label: string;
+  priority_label: string;
+  category_label: string;
+  assigned_to: number | null;
+  related_transaction_reference: string | null;
+  is_read_by_user: boolean;
+  is_read_by_agent: boolean;
+  messages_count: number;
+  last_replied_at: string | null;
+  resolved_at: string | null;
+  closed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  assignee?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  latest_message?: {
+    id: number;
+    message: string;
+    created_at: string;
+    user: {
+      id: number;
+      first_name: string;
+      last_name: string;
+    };
+  } | null;
+  messages?: SupportMessage[];
+}
+
+export interface SupportMessage {
+  id: number;
+  support_ticket_id: number;
+  user_id: number;
+  message: string;
+  is_internal_note: boolean;
+  attachment_url: string | null;
+  attachment_type: string | null;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+  user: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    profile_photo_url?: string | null;
+  };
+}
+
+export interface SupportTicketStats {
+  total: number;
+  open: number;
+  in_progress: number;
+  awaiting_user: number;
+  awaiting_agent: number;
+  resolved: number;
+  closed: number;
+  unassigned: number;
+  unread: number;
+}
+
+export interface SupportAgent {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+export interface CreateSupportTicketRequest {
+  subject: string;
+  description: string;
+  category: SupportCategory;
+  priority?: SupportPriority;
+  related_transaction_reference?: string;
+  initial_message?: string;
+}
+
+export interface SendSupportMessageRequest {
+  message: string;
+  attachment_url?: string;
+}
+
+export interface AdminSendSupportMessageRequest {
+  message: string;
+  is_internal_note?: boolean;
+  attachment_url?: string;
+}

@@ -15,6 +15,7 @@ export const getNotificationTypeColor = (type: NotificationType): string => {
     promotion: 'amber',
     update: 'cyan',
     alert: 'red',
+    support_ticket: 'purple',
   };
   return colors[type] || 'gray';
 };
@@ -29,6 +30,7 @@ export const getNotificationTypeLabel = (type: NotificationType): string => {
     promotion: 'Promotion',
     update: 'Update',
     alert: 'Alert',
+    support_ticket: 'Support',
   };
   return labels[type] || type;
 };
@@ -153,6 +155,11 @@ export const getNotificationActionUrl = (notification: any): string | null => {
   // Transaction notifications
   if (notification.type === 'transaction' && data.transaction_id) {
     return `/dashboard/history/${data.transaction_id}`;
+  }
+
+  // Support ticket notifications
+  if (notification.type === 'support_ticket' && data.ticket_id) {
+    return `/dashboard/support/${data.ticket_id}`;
   }
 
   // Custom action URL

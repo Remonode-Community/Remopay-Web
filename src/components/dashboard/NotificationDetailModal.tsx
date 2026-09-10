@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, CheckCircle, Zap, Gift, Info, AlertCircle, Bell, Check, Trash2 } from 'lucide-react';
+import { X, CheckCircle, Zap, Gift, Info, AlertCircle, Bell, Check, Trash2, MessageSquare } from 'lucide-react';
 import { Notification, NotificationType } from '@/types/notification.types';
 import { formatRelativeTime } from '@/utils/format.utils';
 
@@ -22,6 +22,7 @@ const getNotificationIcon = (type: NotificationType) => {
     promotion: <Gift className={`${iconProps} text-purple-500`} />,
     update: <Info className={`${iconProps} text-cyan-500`} />,
     alert: <AlertCircle className={`${iconProps} text-red-500`} />,
+    support_ticket: <MessageSquare className={`${iconProps} text-purple-500`} />,
   };
 
   return typeIcons[type] || <Bell className={`${iconProps} text-gray-500`} />;
@@ -34,6 +35,7 @@ const getTypeBadgeStyles = (type: NotificationType) => {
     promotion: 'bg-purple-100 text-purple-700',
     update: 'bg-cyan-100 text-cyan-700',
     alert: 'bg-red-100 text-red-700',
+    support_ticket: 'bg-purple-100 text-purple-700',
   };
   return styles[type] || styles.system;
 };

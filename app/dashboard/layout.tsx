@@ -21,6 +21,7 @@ import {
   Wifi,
   X,
   Users,
+  Headphones,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -91,6 +92,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/usd-account', label: 'USD Account', icon: DollarSign },
     { href: '/dashboard/history', label: 'History', icon: Activity },
     { href: '/dashboard/referral', label: 'Referrals', icon: Users },
+    { href: '/dashboard/support', label: 'Support', icon: Headphones },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   ];
 

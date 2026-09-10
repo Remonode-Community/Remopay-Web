@@ -26,6 +26,7 @@ import {
   FolderTree,
   Tags,
   Mail,
+  Headphones,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -63,6 +64,8 @@ const adminNavItems = [
   { label: 'Tags', href: '/admin/blog/tags', icon: Tags },
   { label: 'Newsletter', href: '/admin/blog/newsletter', icon: Mail },
   { label: 'Blog Analytics', href: '/admin/blog/analytics', icon: BarChart3 },
+  // Support Management
+  { label: 'Support Tickets', href: '/admin/support', icon: Headphones },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

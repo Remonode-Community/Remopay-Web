@@ -102,6 +102,7 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        'X-Public-Key': process.env.NEXT_PUBLIC_X_PUBLIC_KEY || '',
       },
     });
 
