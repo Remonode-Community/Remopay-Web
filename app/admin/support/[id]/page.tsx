@@ -83,8 +83,7 @@ export default function AdminSupportDetailPage() {
   const fetchTicket = async () => {
     try {
       const response = await supportService.adminGetTicket(ticketId);
-      const data = response?.data?.data ?? response?.data;
-      setTicket(data?.ticket ?? null);
+      setTicket(response?.data?.ticket ?? null);
     } catch (error) {
       console.error('Failed to fetch ticket:', error);
     } finally {
@@ -95,8 +94,7 @@ export default function AdminSupportDetailPage() {
   const fetchAgents = async () => {
     try {
       const response = await supportService.adminGetAgents();
-      const data = response?.data?.data ?? response?.data;
-      setAgents(data?.agents ?? []);
+      setAgents(response?.data?.agents ?? []);
     } catch (error) {
       console.error('Failed to fetch agents:', error);
     }

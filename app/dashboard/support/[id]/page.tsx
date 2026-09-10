@@ -57,8 +57,7 @@ export default function SupportTicketDetailPage() {
   const fetchTicket = async () => {
     try {
       const response = await supportService.getTicket(ticketId);
-      const data = response?.data?.data ?? response?.data;
-      setTicket(data?.ticket ?? null);
+      setTicket(response?.data?.ticket ?? null);
     } catch (error) {
       console.error('Failed to fetch ticket:', error);
     } finally {

@@ -66,9 +66,8 @@ export default function SupportTicketsPage() {
       });
 
       if (response?.data) {
-        const data = response.data.data ?? response.data;
-        setTickets(data.tickets ?? []);
-        setStats(data.stats ?? null);
+        setTickets(response.data.tickets ?? []);
+        setStats(response.data.stats ?? null);
         if (response.pagination) {
           setTotalPages(response.pagination.last_page ?? 1);
         }

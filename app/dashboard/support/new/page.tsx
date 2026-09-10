@@ -70,7 +70,7 @@ export default function NewSupportTicketPage() {
           : form.initial_message || undefined,
       };
       const response = await supportService.createTicket(payload);
-      const ticket = response?.data?.data?.ticket ?? response?.data?.ticket;
+      const ticket = response?.data?.ticket;
       if (ticket?.id) {
         router.push(`/dashboard/support/${ticket.id}`);
       } else {
