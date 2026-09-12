@@ -37,7 +37,7 @@ export default function AdvertisementsPage() {
   };
 
   return (
-    <>
+    <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-6 text-slate-950">
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Advertisements</h1>
@@ -95,6 +95,6 @@ export default function AdvertisementsPage() {
           onSave={handleFormSave}
         />
       )}
-    </>
+    </div>
   );
 }

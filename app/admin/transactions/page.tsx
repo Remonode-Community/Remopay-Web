@@ -13,8 +13,7 @@ import {
 import { clsx } from 'clsx';
 
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminStats } from '@/components/admin/AdminStats';
-import { TransactionCharts } from '@/components/admin/TransactionCharts';
+import { TransactionIntelligence } from '@/components/admin/TransactionIntelligence';
 import { FilterPanel, type FilterField } from '@/components/shared/FilterPanel';
 import { useFilters } from '@/hooks/useFilters';
 import { Button } from '@/components/shared/Button';
@@ -113,8 +112,6 @@ export default function AdminTransactionsPage() {
   });
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [statusDistribution, setStatusDistribution] = useState<{ name: string; value: number; fill: string }[]>([]);
-  const [typeDistribution, setTypeDistribution] = useState<{ name: string; amount: number; count: number }[]>([]);
 
   const isAdmin = useMemo(() => {
     return Boolean(user?.roles?.some((role) => role === 'admin'));
@@ -289,48 +286,6 @@ export default function AdminTransactionsPage() {
           failed_count: failed,
           pending_count: pending,
         });
-
-        // Status distribution for pie chart
-        const statusMap: Record<string, number> = {};
-        transactionsData.forEach((t: Transaction) => {
-          const s = t.status === 'completed' || t.status === 'success' ? 'Completed' :
-                    t.status === 'failed' ? 'Failed' :
-                    t.status === 'pending' ? 'Pending' :
-                    t.status === 'reversed' ? 'Reversed' :
-                    t.status === 'refunded' ? 'Refunded' : t.status;
-          statusMap[s] = (statusMap[s] || 0) + 1;
-        });
-
-        const fillMap: Record<string, string> = {
-          Completed: '#10b981',
-          Pending: '#f59e0b',
-          Failed: '#ef4444',
-          Reversed: '#8b5cf6',
-          Refunded: '#3b82f6',
-        };
-
-        setStatusDistribution(
-          Object.entries(statusMap)
-            .filter(([, v]) => v > 0)
-            .map(([name, value]) => ({ name, value, fill: fillMap[name] || '#6b7280' }))
-        );
-
-        // Transaction type distribution for bar chart
-        const typeMap: Record<string, { amount: number; count: number }> = {};
-        transactionsData.forEach((t: Transaction) => {
-          const type = t.transaction_type || t.transactionable?.type || 'Unknown';
-          if (!typeMap[type]) {
-            typeMap[type] = { amount: 0, count: 0 };
-          }
-          typeMap[type].amount += Number(t.amount);
-          typeMap[type].count += 1;
-        });
-        const typeData = Object.entries(typeMap).map(([name, data]) => ({
-          name: name.replace(/_/g, ' '),
-          amount: data.amount,
-          count: data.count,
-        }));
-        setTypeDistribution(typeData);
       } else {
         setStats({
           total_transactions: 0,
@@ -339,8 +294,6 @@ export default function AdminTransactionsPage() {
           failed_count: 0,
           pending_count: 0,
         });
-        setStatusDistribution([]);
-        setTypeDistribution([]);
       }
     } catch (error) {
       console.error('[AdminTransactions] Error fetching transactions:', error);
@@ -354,32 +307,6 @@ export default function AdminTransactionsPage() {
   useEffect(() => {
     fetchTransactions(currentPage);
   }, [currentPage]);
-
-  const statsItems = [
-    {
-      title: 'Total Transactions',
-      value: stats.total_transactions || 0,
-      change: { value: 'Last 24h', direction: 'neutral' as const },
-    },
-    {
-      title: 'Total Volume',
-      value: formatCurrency(stats.total_amount || 0),
-      change: { value: '+5.2%', direction: 'up' as const },
-    },
-    {
-      title: 'Successful',
-      value: stats.completed_count || 0,
-      change: {
-        value: `${stats.total_transactions ? Math.round((stats.completed_count || 0) / stats.total_transactions * 100) : 0}%`,
-        direction: 'up' as const,
-      },
-    },
-    {
-      title: 'Failed',
-      value: stats.failed_count || 0,
-      change: { value: '-2.1%', direction: 'down' as const },
-    },
-  ];
 
   if (!isAdmin) {
     return null;
@@ -398,10 +325,8 @@ export default function AdminTransactionsPage() {
           onClick: () => console.log('Export report'),
         }}
       />
-      <AdminStats stats={statsItems} />
-
-      {/* Charts Section */}
-      <TransactionCharts statusDistribution={statusDistribution} typeDistribution={typeDistribution} />
+      {/* Transaction Intelligence Dashboard */}
+      <TransactionIntelligence transactions={transactions} />
 
       {/* Filter Button */}
       <div className="flex justify-end">

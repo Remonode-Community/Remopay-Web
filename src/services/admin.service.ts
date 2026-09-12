@@ -136,6 +136,10 @@ class AdminService {
     return apiClient.post(`/admin/users/${userId}/role`, { role });
   }
 
+  async createVirtualAccount(userId: string | number): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/create-virtual-account`);
+  }
+
   // TRANSACTIONS ENDPOINTS
   async getAllTransactions(page = 1, per_page = 10, filters?: any): Promise<any> {
     const params = new URLSearchParams();

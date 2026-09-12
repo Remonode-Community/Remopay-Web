@@ -89,7 +89,7 @@ export default function NewsletterHistoryPage() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-6 text-slate-950">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-black text-gray-900">Newsletter Campaigns</h2>

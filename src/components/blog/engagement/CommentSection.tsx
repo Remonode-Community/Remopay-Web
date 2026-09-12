@@ -14,7 +14,7 @@ interface CommentSectionProps {
 }
 
 function CommentItem({ comment, depth = 0 }: { comment: BlogComment; depth?: number }) {
-  const author = comment.author;
+  const author = comment.user;
   const initials = author
     ? `${author.first_name?.[0] || ''}${author.last_name?.[0] || ''}`.toUpperCase()
     : 'U';

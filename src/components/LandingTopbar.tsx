@@ -37,7 +37,6 @@ export function LandingTopbar() {
             Services <ChevronDown size={14} />
           </a>
           <a href="#rewards" className="hover:text-[#ff4b55]">Rewards</a>
-          <a href="#how" className="hover:text-[#ff4b55]">How It Works</a>
           <a href="#security" className="hover:text-[#ff4b55]">Security</a>
           <Link href="/blog" className="hover:text-[#ff4b55]">
             Blog

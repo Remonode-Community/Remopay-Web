@@ -132,13 +132,15 @@ export default function AdminSupportPage() {
   };
 
   useEffect(() => {
+    if (!isAdmin) return;
     fetchTickets(1);
     setCurrentPage(1);
-  }, [statusFilter, categoryFilter, priorityFilter, assignedFilter, search]);
+  }, [statusFilter, categoryFilter, priorityFilter, assignedFilter, search, isAdmin]);
 
   useEffect(() => {
+    if (!isAdmin) return;
     fetchTickets(currentPage);
-  }, [currentPage]);
+  }, [currentPage, isAdmin]);
 
   if (!isAdmin) return null;
 

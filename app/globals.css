@@ -85,6 +85,49 @@ body {
   scrollbar-width: none;
 }
 
+/* Show scrollbar only on hover */
+.scrollbar-hover::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-hover::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.scrollbar-hover::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.scrollbar-hover {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+/* Hide scrollbar by default, show on parent hover */
+.group-scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.group-scroll-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.group:hover .group-scroll-hidden::-webkit-scrollbar {
+  display: block;
+}
+
+.group:hover .group-scroll-hidden {
+  -ms-overflow-style: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
 /* ==================== RESPONSIVE TYPOGRAPHY SYSTEM ==================== */
 
 @layer utilities {
@@ -506,14 +549,16 @@ body {
 /* Lists */
 .blog-content .block-list,
 .blog-content ul,
-.blog-content ol { margin: 0 0 22px; padding-left: 24px; }
+.blog-content ol { margin: 0 0 22px; padding-left: 24px; list-style-type: disc; }
+.blog-content ol,
+.blog-content .block-list--ordered { list-style-type: decimal; }
 .blog-content .block-list li,
 .blog-content ul li,
 .blog-content ol li { margin: 0 0 8px; padding-left: 4px; }
 .blog-content .block-list--unordered li::marker,
-.blog-content ul li::marker { color: #7c1a1a; }
+.blog-content ul li::marker { color: inherit; }
 .blog-content .block-list--ordered li::marker,
-.blog-content ol li::marker { color: #7c1a1a; font-weight: 700; }
+.blog-content ol li::marker { color: inherit; font-weight: 700; }
 
 /* Quote */
 .blog-content .block-quote,

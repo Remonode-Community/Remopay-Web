@@ -209,36 +209,23 @@ export default function RemopayLandingPage() {
               {currentHero.desc}
             </p>
 
-            <div className="mt-6 sm:mt-8 flex flex-wrap gap-3 sm:gap-4">
+            <div className="mt-6 sm:mt-8 flex gap-2 sm:gap-4">
               <Link
                 href="/auth/register"
-                className="inline-flex items-center gap-2 sm:gap-3 rounded-xl bg-[#d71927] px-5 py-3 sm:px-6 sm:py-3.5 md:px-7 md:py-4 button-md text-white shadow-xl shadow-[#d71927]/30 transition hover:bg-[#b91420]"
+                className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-3 rounded-xl bg-[#d71927] px-3 py-2.5 sm:px-6 sm:py-3.5 md:px-7 md:py-4 button-md text-xs sm:text-sm md:text-base text-white shadow-xl shadow-[#d71927]/30 transition hover:bg-[#b91420] whitespace-nowrap"
               >
                 Create Free Account <ArrowRight size={18} />
               </Link>
 
               <a
                 href="#services"
-                className="inline-flex items-center gap-2 sm:gap-3 rounded-xl border border-[#ff4b55]/50 bg-black/20 px-5 py-3 sm:px-6 sm:py-3.5 md:px-7 md:py-4 button-md text-white backdrop-blur transition hover:bg-white/10"
+                className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 sm:gap-3 rounded-xl border border-[#ff4b55]/50 bg-black/20 px-3 py-2.5 sm:px-6 sm:py-3.5 md:px-7 md:py-4 button-md text-xs sm:text-sm md:text-base text-white backdrop-blur transition hover:bg-white/10 whitespace-nowrap"
               >
                 Explore Services <ArrowRight size={18} />
               </a>
             </div>
 
-            <div className="mt-8 sm:mt-10 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-4">
-              {[
-                ['Instant Payments', '24/7', Zap],
-                ['Secure Platform', 'Bank-level Security', ShieldCheck],
-                ['Rewards & Bonuses', 'Earn as you pay', Gift],
-                ['Trusted by Users', 'Across Nigeria', Users],
-              ].map(([title, desc, Icon]: any) => (
-                <div key={title} className="border-r border-white/15 pr-3 sm:pr-4 last:border-0">
-                  <Icon className="mb-2 sm:mb-3 h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-white" />
-                  <p className="label text-white">{title}</p>
-                  <p className="mt-1 caption-xs text-white/65">{desc}</p>
-                </div>
-              ))}
-            </div>
+          
           </div>
 
           <div className="hidden lg:block" />

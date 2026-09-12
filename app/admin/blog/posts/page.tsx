@@ -174,7 +174,7 @@ export default function BlogPostsPage() {
     : null;
 
   return (
-    <div className="space-y-5">
+    <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-6 text-slate-950">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

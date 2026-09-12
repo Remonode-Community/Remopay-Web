@@ -558,6 +558,8 @@ export interface AdminUser extends User {
   kyc_tier?: 'TIER_ONE' | 'TIER_TWO' | 'TIER_THREE';
   kyc_status?: 'pending' | 'approved' | 'rejected';
   maplerad_id?: string;
+  virtual_account_number?: string;
+  virtual_account_bank?: string;
   statistics?: {
     total_transactions: number;
     successful_transactions: number;

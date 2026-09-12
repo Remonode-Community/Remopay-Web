@@ -93,21 +93,9 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { value: '50K+', label: 'Active Users' },
-                { value: '250K+', label: 'Monthly Transactions' },
-                { value: '₦2B+', label: 'Total Value Processed' },
-                { value: '99.9%', label: 'Uptime Guarantee' },
-              ].map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-lg border border-gray-200 bg-white p-6 text-center hover:shadow-sm transition"
-                >
-                  <p className="text-2xl font-bold text-[#d71927]">{stat.value}</p>
-                  <p className="text-xs text-gray-600 mt-2">{stat.label}</p>
-                </div>
-              ))}
+            <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+              <p className="text-sm font-semibold text-gray-500">Platform stats coming soon</p>
+              <p className="text-xs text-gray-400 mt-2">Real-time usage data will be displayed here once available.</p>
             </div>
           </div>
         </div>

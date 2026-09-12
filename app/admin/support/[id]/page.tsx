@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   ArrowLeft,
@@ -23,8 +23,56 @@ import { Card } from '@/components/shared/Card';
 import { Spinner } from '@/components/shared/Spinner';
 import { Modal } from '@/components/shared/Modal';
 import { supportService } from '@/services/support.service';
+import { useAuthStore } from '@/store/auth.store';
 import { formatDateTime, formatRelativeTime } from '@/utils/format.utils';
 import type { SupportTicket, SupportMessage, SupportStatus, SupportPriority, SupportAgent } from '@/types/api.types';
+
+/** Parse message text that may contain embedded JSON with attachments */
+function parseMessageAttachments(msg: SupportMessage): { text: string; attachments: { url: string; type: string; name: string }[] } {
+  const raw = msg.message || '';
+  const attachments: { url: string; type: string; name: string }[] = [];
+
+  // Check if message text is or contains JSON with attachments
+  try {
+    let jsonStr = raw;
+    // Handle case where JSON is embedded in surrounding text
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      jsonStr = raw.slice(jsonStart, jsonEnd + 1);
+    }
+    const parsed = JSON.parse(jsonStr);
+    if (parsed.attachments && Array.isArray(parsed.attachments)) {
+      attachments.push(...parsed.attachments);
+    }
+  } catch {
+    // Not JSON — plain text message
+  }
+
+  // Also include legacy single attachment_url field
+  if (msg.attachment_url) {
+    const alreadyHas = attachments.some((a) => a.url === msg.attachment_url);
+    if (!alreadyHas) {
+      attachments.push({ url: msg.attachment_url, type: msg.attachment_type || 'image', name: 'Attachment' });
+    }
+  }
+
+  // Clean text: remove JSON block, trim
+  let text = raw;
+  try {
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      const before = raw.slice(0, jsonStart).trim();
+      const after = raw.slice(jsonEnd + 1).trim();
+      text = [before, after].filter(Boolean).join(' ');
+    }
+  } catch {
+    // leave text as-is
+  }
+
+  return { text, attachments };
+}
 
 const STATUS_OPTIONS: { value: SupportStatus; label: string }[] = [
   { value: 'open', label: 'Open' },
@@ -61,7 +109,10 @@ const PRIORITY_CONFIG: Record<SupportPriority, { label: string; variant: 'danger
 export default function AdminSupportDetailPage() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuthStore();
   const ticketId = Number(params?.id);
+
+  const isAdmin = useMemo(() => user?.roles?.some((r) => r === 'admin'), [user]);
 
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [loading, setLoading] = useState(true);
@@ -101,11 +152,11 @@ export default function AdminSupportDetailPage() {
   };
 
   useEffect(() => {
-    if (ticketId) {
+    if (ticketId && isAdmin) {
       fetchTicket();
       fetchAgents();
     }
-  }, [ticketId]);
+  }, [ticketId, isAdmin]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -188,6 +239,8 @@ export default function AdminSupportDetailPage() {
     }
   };
 
+  if (!isAdmin) return null;
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f8f8f8]">
@@ -267,13 +320,14 @@ export default function AdminSupportDetailPage() {
             {ticket.messages?.map((msg) => {
               const own = isUserMessage(msg);
               const isNote = msg.is_internal_note;
+              const { text: msgText, attachments: msgAttachments } = parseMessageAttachments(msg);
               return (
                 <div key={msg.id} className={`flex ${own ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     isNote
                       ? 'border border-dashed border-amber-300 bg-amber-50'
                       : own
-                        ? 'bg-[#d71927] text-white'
+                        ? 'bg-[#f0f4ff] border border-blue-100 text-[#1e3a5f]'
                         : 'bg-white border border-[#e5e7eb] text-[#111827]'
                   }`}>
                     {!own && !isNote && (
@@ -290,19 +344,26 @@ export default function AdminSupportDetailPage() {
                         <span className="text-xs font-semibold text-amber-700">Internal Note</span>
                       </div>
                     )}
-                    <p className={`text-sm whitespace-pre-wrap ${isNote ? 'text-amber-900' : ''}`}>{msg.message}</p>
-                    {msg.attachment_url && (
-                      <div className="mt-2">
-                        <img
-                          src={msg.attachment_url}
-                          alt="Attachment"
-                          className="max-h-48 w-auto rounded-lg border border-black/5 object-contain"
-                          onClick={() => window.open(msg.attachment_url!, '_blank')}
-                        />
+                    {msgText && (
+                      <p className={`text-sm whitespace-pre-wrap ${isNote ? 'text-amber-900' : ''}`}>{msgText}</p>
+                    )}
+                    {msgAttachments.length > 0 && (
+                      <div className={`mt-2 flex flex-wrap gap-2 ${msgText ? '' : ''}`}>
+                        {msgAttachments.map((att, i) => (
+                          <div key={i} className="overflow-hidden rounded-lg border border-black/5">
+                            <img
+                              src={att.url}
+                              alt={att.name || 'Attachment'}
+                              className="max-h-64 w-auto object-contain"
+                              loading="lazy"
+                              onClick={() => window.open(att.url, '_blank')}
+                            />
+                          </div>
+                        ))}
                       </div>
                     )}
                     <p className={`mt-1.5 text-right text-[10px] ${
-                      isNote ? 'text-amber-500' : own ? 'text-white/70' : 'text-[#9ca3af]'
+                      isNote ? 'text-amber-500' : own ? 'text-blue-400' : 'text-[#9ca3af]'
                     }`}>
                       {formatRelativeTime(msg.created_at)}
                     </p>

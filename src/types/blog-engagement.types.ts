@@ -24,7 +24,7 @@ export interface BlogCommentAuthor {
 export interface BlogComment {
   id: number;
   body: string;
-  author: BlogCommentAuthor | null;
+  user: BlogCommentAuthor | null;
   parent_id?: number | null;
   status?: BlogCommentStatus;
   replies?: BlogComment[];

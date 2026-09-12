@@ -281,6 +281,7 @@ export default function AdminUsersPage() {
   const [loadingRoles, setLoadingRoles] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [creatingVirtualAccount, setCreatingVirtualAccount] = useState(false);
 
   // ── Auth guard ──────────────────────────────────────────────────────────────
 
@@ -428,9 +429,7 @@ export default function AdminUsersPage() {
   // ── Action Handlers ────────────────────────────────────────────────────────
 
   const handleOpenDetails = async (user: AdminUser) => {
-    setSelectedUser(user);
-    await fetchUserDetails(user.id);
-    setShowDetails(true);
+    router.push(`/admin/users/${user.id}`);
   };
 
   const handleOpenRoleModal = async (user: AdminUser) => {
@@ -459,6 +458,22 @@ export default function AdminUsersPage() {
       showAlert('Failed to change user role', 'error');
     } finally {
       setLoadingAction(false);
+    }
+  };
+
+  const handleCreateVirtualAccount = async () => {
+    if (!userDetails) return;
+
+    try {
+      setCreatingVirtualAccount(true);
+      const response = await adminService.createVirtualAccount(userDetails.id);
+      showAlert('Virtual account created successfully', 'success');
+      setUserDetails({ ...userDetails, virtual_account_number: response?.data?.data?.virtual_accounts?.[0]?.virtual_account_number || 'Pending' });
+    } catch (error: any) {
+      console.error('Error creating virtual account:', error);
+      showAlert(error?.response?.data?.message || 'Failed to create virtual account', 'error');
+    } finally {
+      setCreatingVirtualAccount(false);
     }
   };
 
@@ -1560,6 +1575,41 @@ export default function AdminUsersPage() {
                     {userDetails.maplerad_id}
                   </p>
                 </div>
+                {userDetails.virtual_account_number ? (
+                  <div className="mt-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                      Virtual Account Number
+                    </p>
+                    <p className="mt-2 font-mono text-sm text-[#111827]">
+                      {userDetails.virtual_account_number}
+                    </p>
+                    {userDetails.virtual_account_bank && (
+                      <p className="mt-1 text-xs text-[#6b7280]">
+                        {userDetails.virtual_account_bank}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[#6b7280]">
+                      No Virtual Account
+                    </p>
+                    <Button
+                      onClick={handleCreateVirtualAccount}
+                      disabled={creatingVirtualAccount}
+                      className="inline-flex items-center gap-2 rounded-lg bg-[#d71927] px-4 py-2 text-sm font-medium text-white hover:bg-[#b81420]"
+                    >
+                      {creatingVirtualAccount ? (
+                        <>
+                          <Spinner size="sm" className="border-white/30 border-t-white" />
+                          Creating…
+                        </>
+                      ) : (
+                        'Create Virtual Account'
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 

@@ -25,6 +25,49 @@ import { useAuthStore } from '@/store/auth.store';
 import { formatDateTime, formatRelativeTime } from '@/utils/format.utils';
 import type { SupportTicket, SupportMessage, SupportStatus } from '@/types/api.types';
 
+/** Parse message text that may contain embedded JSON with attachments */
+function parseMessageAttachments(msg: SupportMessage): { text: string; attachments: { url: string; type: string; name: string }[] } {
+  const raw = msg.message || '';
+  const attachments: { url: string; type: string; name: string }[] = [];
+
+  try {
+    let jsonStr = raw;
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      jsonStr = raw.slice(jsonStart, jsonEnd + 1);
+    }
+    const parsed = JSON.parse(jsonStr);
+    if (parsed.attachments && Array.isArray(parsed.attachments)) {
+      attachments.push(...parsed.attachments);
+    }
+  } catch {
+    // Not JSON
+  }
+
+  if (msg.attachment_url) {
+    const alreadyHas = attachments.some((a) => a.url === msg.attachment_url);
+    if (!alreadyHas) {
+      attachments.push({ url: msg.attachment_url, type: msg.attachment_type || 'image', name: 'Attachment' });
+    }
+  }
+
+  let text = raw;
+  try {
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      const before = raw.slice(0, jsonStart).trim();
+      const after = raw.slice(jsonEnd + 1).trim();
+      text = [before, after].filter(Boolean).join(' ');
+    }
+  } catch {
+    // leave as-is
+  }
+
+  return { text, attachments };
+}
+
 const STATUS_CONFIG: Record<SupportStatus, { label: string; variant: 'success' | 'warning' | 'danger' | 'info' | 'default' }> = {
   open: { label: 'Open', variant: 'info' },
   in_progress: { label: 'In Progress', variant: 'warning' },
@@ -251,11 +294,12 @@ export default function SupportTicketDetailPage() {
           <div className="space-y-3">
             {ticket.messages?.map((msg) => {
               const isOwn = isUserMessage(msg);
+              const { text: msgText, attachments: msgAttachments } = parseMessageAttachments(msg);
               return (
                 <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
                     isOwn
-                      ? 'bg-[#d71927] text-white rounded-br-md'
+                      ? 'bg-[#f0f4ff] border border-blue-100 text-[#1e3a5f] rounded-br-md'
                       : 'bg-gray-100 text-gray-900 rounded-bl-md'
                   }`}>
                     {!isOwn && (
@@ -268,20 +312,24 @@ export default function SupportTicketDetailPage() {
                         </span>
                       </div>
                     )}
-                    {msg.message && !msg.message.startsWith('{') && (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.message}</p>
+                    {msgText && (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msgText}</p>
                     )}
-                    {msg.attachment_url && (
-                      <div className="mt-2 overflow-hidden rounded-lg">
-                        <img
-                          src={msg.attachment_url}
-                          alt="Attachment"
-                          className="max-h-64 w-auto rounded-lg object-contain"
-                          loading="lazy"
-                        />
+                    {msgAttachments.length > 0 && (
+                      <div className={`mt-2 flex flex-wrap gap-2`}>
+                        {msgAttachments.map((att, i) => (
+                          <div key={i} className="overflow-hidden rounded-lg border border-black/5">
+                            <img
+                              src={att.url}
+                              alt={att.name || 'Attachment'}
+                              className="max-h-64 w-auto object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                        ))}
                       </div>
                     )}
-                    <p className={`mt-1.5 text-right text-[10px] ${isOwn ? 'text-white/60' : 'text-gray-400'}`}>
+                    <p className={`mt-1.5 text-right text-[10px] ${isOwn ? 'text-blue-400' : 'text-gray-400'}`}>
                       {formatRelativeTime(msg.created_at)}
                     </p>
                   </div>
