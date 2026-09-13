@@ -106,17 +106,17 @@ function InfoRow({ label, value, mono, sensitive }: {
 }) {
   const [revealed, setRevealed] = useState(false);
   return (
-    <div className="flex items-start justify-between gap-4 py-2.5">
+    <div className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
       <span className="text-xs font-medium uppercase tracking-wide text-[#6b7280] shrink-0">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className={`text-sm font-medium text-right text-[#111827] ${mono ? 'font-mono' : ''}`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className={`text-sm font-medium text-[#111827] sm:text-right ${mono ? 'font-mono' : ''} break-all`}>
           {sensitive && typeof value === 'string' ? maskSensitive(value, revealed) : value ?? 'Not Provided'}
         </span>
         {sensitive && typeof value === 'string' && value && (
           <button
             type="button"
             onClick={() => setRevealed(!revealed)}
-            className="text-[#6b7280] hover:text-[#111827] transition-colors"
+            className="text-[#6b7280] hover:text-[#111827] transition-colors shrink-0"
           >
             {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
@@ -491,7 +491,7 @@ export default function AdminUserDetailPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {user.status === 'suspended' ? (
                 <Button
                   variant="outline"
@@ -766,53 +766,92 @@ export default function AdminUserDetailPage() {
               ) : transactions.length === 0 ? (
                 <p className="py-8 text-center text-sm text-gray-500">No transactions yet.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        <th className="pb-3 font-semibold text-gray-500">Reference</th>
-                        <th className="pb-3 font-semibold text-gray-500">Type</th>
-                        <th className="pb-3 font-semibold text-gray-500 text-right">Amount</th>
-                        <th className="pb-3 font-semibold text-gray-500">Status</th>
-                        <th className="pb-3 font-semibold text-gray-500">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {transactions.map((tx) => (
-                        <tr
-                          key={tx.id}
-                          className="cursor-pointer hover:bg-gray-50 transition-colors"
-                          onClick={() => router.push(`/admin/transactions/${tx.id}`)}
-                        >
-                          <td className="py-3 font-mono text-xs text-gray-700">{tx.reference}</td>
-                          <td className="py-3 text-xs capitalize text-gray-700">
-                            {tx.transaction_type?.replace(/_/g, ' ')}
-                          </td>
-                          <td className="py-3 text-right font-mono text-xs font-semibold text-gray-900">
-                            ₦{tx.amount?.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3">
-                            <Badge
-                              variant={tx.status === 'success' ? 'success' : tx.status === 'failed' ? 'danger' : 'warning'}
-                              size="sm"
-                            >
-                              {tx.status}
-                            </Badge>
-                          </td>
-                          <td className="py-3 text-xs text-gray-500">
-                            {formatDateTime(tx.transaction_date)}
-                          </td>
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden overflow-x-auto md:block">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100">
+                          <th className="pb-3 font-semibold text-gray-500">Reference</th>
+                          <th className="pb-3 font-semibold text-gray-500">Type</th>
+                          <th className="pb-3 font-semibold text-gray-500 text-right">Amount</th>
+                          <th className="pb-3 font-semibold text-gray-500">Status</th>
+                          <th className="pb-3 font-semibold text-gray-500">Date</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <button
-                    onClick={() => router.push(`/admin/transactions?user_id=${userId}`)}
-                    className="mt-4 w-full rounded-xl border border-gray-200 py-2.5 text-center text-sm font-semibold text-[#d71927] transition-colors hover:bg-red-50"
-                  >
-                    View All Transactions
-                  </button>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {transactions.map((tx) => (
+                          <tr
+                            key={tx.id}
+                            className="cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => router.push(`/admin/transactions/${tx.id}`)}
+                          >
+                            <td className="py-3 font-mono text-xs text-gray-700">{tx.reference}</td>
+                            <td className="py-3 text-xs capitalize text-gray-700">
+                              {tx.transaction_type?.replace(/_/g, ' ')}
+                            </td>
+                            <td className="py-3 text-right font-mono text-xs font-semibold text-gray-900">
+                              ₦{tx.amount?.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3">
+                              <Badge
+                                variant={tx.status === 'success' ? 'success' : tx.status === 'failed' ? 'danger' : 'warning'}
+                                size="sm"
+                              >
+                                {tx.status}
+                              </Badge>
+                            </td>
+                            <td className="py-3 text-xs text-gray-500">
+                              {formatDateTime(tx.transaction_date)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="space-y-3 md:hidden">
+                    {transactions.map((tx) => (
+                      <div
+                        key={tx.id}
+                        className="cursor-pointer rounded-xl border border-gray-100 bg-[#f8fafc] p-4 transition-colors hover:bg-gray-50"
+                        onClick={() => router.push(`/admin/transactions/${tx.id}`)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-mono text-xs font-medium text-gray-900">{tx.reference}</p>
+                            <p className="mt-1 text-xs capitalize text-gray-500">
+                              {tx.transaction_type?.replace(/_/g, ' ')}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-mono text-xs font-semibold text-gray-900">
+                              ₦{tx.amount?.toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+                            </p>
+                            <div className="mt-1">
+                              <Badge
+                                variant={tx.status === 'success' ? 'success' : tx.status === 'failed' ? 'danger' : 'warning'}
+                                size="sm"
+                              >
+                                {tx.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-[11px] text-gray-400">{formatDateTime(tx.transaction_date)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              {transactions.length > 0 && (
+                <button
+                  onClick={() => router.push(`/admin/transactions?user_id=${userId}`)}
+                  className="mt-4 w-full rounded-xl border border-gray-200 py-2.5 text-center text-sm font-semibold text-[#d71927] transition-colors hover:bg-red-50"
+                >
+                  View All Transactions
+                </button>
               )}
             </SectionCard>
           </div>
