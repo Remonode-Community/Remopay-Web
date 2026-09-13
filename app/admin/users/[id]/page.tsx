@@ -286,15 +286,17 @@ export default function AdminUserDetailPage() {
 
   const handleSuspend = () => {
     handleAction('Suspend', async () => {
-      await adminService.updateUserStatus(userId, { status: 'suspended', reason: suspendReason });
+      await adminService.updateUserStatus(userId, { status: 'suspended', reason: suspendReason || undefined });
       setShowSuspendModal(false);
       setSuspendReason('');
+      fetchUser();
     });
   };
 
   const handleActivate = () => {
     handleAction('Activate', async () => {
       await adminService.updateUserStatus(userId, { status: 'active' });
+      fetchUser();
     });
   };
 
@@ -329,9 +331,26 @@ export default function AdminUserDetailPage() {
         virtual_account_number: response?.data?.data?.virtual_accounts?.[0]?.virtual_account_number || 'Pending',
       } : prev);
     } catch (err: any) {
-      showAlert(err?.response?.data?.message || 'Failed to create virtual account', 'error');
+      const data = err?.response?.data;
+      if (data?.requires_tier_upgrade) {
+        showAlert('User must upgrade to Tier 1 before a virtual account can be created.', 'error');
+      } else {
+        showAlert(data?.message || 'Failed to create virtual account', 'error');
+      }
     } finally {
       setCreatingVA(false);
+    }
+  };
+
+  const handleSendTierUpgradeReminder = async () => {
+    try {
+      setLoadingAction('Send Reminder');
+      await adminService.sendTierUpgradeReminder(userId);
+      showAlert('Tier upgrade reminder sent to user', 'success');
+    } catch (err: any) {
+      showAlert(err?.response?.data?.message || 'Failed to send reminder', 'error');
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -473,15 +492,53 @@ export default function AdminUserDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { fetchRoles(); setShowNotificationModal(true); }}
-                className="inline-flex items-center gap-1.5"
-              >
-                <Send className="h-3.5 w-3.5" />
-                Notify
-              </Button>
+              {user.status === 'suspended' ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleActivate}
+                  disabled={loadingAction === 'Activate'}
+                  className="inline-flex items-center gap-1.5 border-green-300 text-green-700 hover:bg-green-50"
+                >
+                  {loadingAction === 'Activate' ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Activating…
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-3.5 w-3.5" />
+                      Unsuspend
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSuspendModal(true)}
+                  disabled={user.roles?.includes('admin')}
+                  className="inline-flex items-center gap-1.5 border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                  Suspend
+                </Button>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { fetchRoles(); setShowNotificationModal(true); }}
+                  className="inline-flex items-center gap-1.5"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Notify
+                </Button>
+                <span
+                  className={`h-2 w-2 rounded-full ${user.has_push_token ? 'bg-green-500' : 'bg-gray-300'}`}
+                  title={user.has_push_token ? 'Push notifications enabled' : 'No push token — user won\'t receive push notifications'}
+                />
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -517,6 +574,22 @@ export default function AdminUserDetailPage() {
                     }
                   />
                 )}
+                <InfoRow
+                  label="Push Notifications"
+                  value={
+                    user.has_push_token ? (
+                      <span className="inline-flex items-center gap-1.5 text-green-700">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Enabled
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-gray-400">
+                        <Ban className="h-3.5 w-3.5" />
+                        Not Available
+                      </span>
+                    )
+                  }
+                />
               </div>
             </SectionCard>
 
@@ -590,6 +663,28 @@ export default function AdminUserDetailPage() {
                         <InfoRow label="Bank" value={user.virtual_account_bank} />
                       )}
                     </>
+                  ) : (!user.kyc_tier || user.kyc_tier === 'TIER_ZERO') ? (
+                    <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-orange-300 bg-orange-50 p-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
+                        <AlertTriangle className="h-5 w-5 text-orange-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900">Tier 1 Required</p>
+                        <p className="text-xs text-gray-500">User must complete Tier 1 verification (DOB, address, BVN) before a virtual account can be created.</p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleSendTierUpgradeReminder}
+                        disabled={loadingAction === 'Send Reminder'}
+                      >
+                        {loadingAction === 'Send Reminder' ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          'Send Reminder'
+                        )}
+                      </Button>
+                    </div>
                   ) : (
                     <div className="mt-4 flex items-center gap-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100">
@@ -616,6 +711,25 @@ export default function AdminUserDetailPage() {
                       </Button>
                     </div>
                   )}
+                </div>
+              </SectionCard>
+            )}
+
+            {/* Paystack Virtual Account */}
+            {user.paystack_account_number && (
+              <SectionCard title="Paystack Virtual Account" icon={Landmark}>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-1 md:grid-cols-2">
+                  <InfoRow label="Account Number" value={user.paystack_account_number} mono />
+                  <InfoRow label="Account Name" value={user.paystack_account_name} />
+                  <InfoRow label="Bank" value={user.paystack_bank_name} />
+                  <InfoRow
+                    label="Status"
+                    value={
+                      <Badge variant={user.paystack_account_active ? 'success' : 'danger'} size="sm">
+                        {user.paystack_account_active ? 'Active' : 'Inactive'}
+                      </Badge>
+                    }
+                  />
                 </div>
               </SectionCard>
             )}
@@ -1033,6 +1147,42 @@ export default function AdminUserDetailPage() {
                   className="flex-1"
                 >
                   Send
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Suspend Modal */}
+        {showSuspendModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-lg font-bold text-gray-900">Suspend Account</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                This will immediately log out {fullName} and block all access. They will see a
+                &quot;Account Suspended&quot; message on next login or API request.
+              </p>
+              <div className="mt-4">
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Reason (optional)</label>
+                <textarea
+                  value={suspendReason}
+                  onChange={(e) => setSuspendReason(e.target.value)}
+                  rows={3}
+                  placeholder="Why is this account being suspended?"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#d71927] focus:outline-none focus:ring-1 focus:ring-[#d71927]"
+                />
+              </div>
+              <div className="mt-6 flex gap-3">
+                <Button variant="outline" onClick={() => { setShowSuspendModal(false); setSuspendReason(''); }} className="flex-1">
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleSuspend}
+                  isLoading={loadingAction === 'Suspend'}
+                  className="flex-1 bg-red-600 hover:bg-red-700"
+                >
+                  Suspend Account
                 </Button>
               </div>
             </div>

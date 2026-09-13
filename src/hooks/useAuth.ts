@@ -20,6 +20,15 @@ export const useAuth = () => {
         const response = await authService.login(data);
 
         if (response.success && response.data) {
+          // Check if account is suspended
+          if (response.data.user?.status === 'suspended') {
+            const reason = response.data.user?.suspension_reason || 'Your account has been suspended. Please contact support.';
+            setError(reason);
+            addToast({ type: 'error', message: reason });
+            logoutStore();
+            return;
+          }
+
           setUser(response.data.user);
           setAuthToken(response.data.token);
           

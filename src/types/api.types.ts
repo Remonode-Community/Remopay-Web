@@ -57,6 +57,9 @@ export interface User {
   permissions: string[];
   balance: number;
   formatted_balance: string;
+  status?: 'active' | 'inactive' | 'suspended';
+  suspension_reason?: string | null;
+  suspended_at?: string | null;
   mapleradCustomer?: MapleradCustomerData | null;
 }
 
@@ -543,6 +546,10 @@ export interface AdminDashboard {
 
 export interface AdminUser extends User {
   status: 'active' | 'inactive' | 'suspended';
+  suspension_reason?: string | null;
+  suspended_at?: string | null;
+  unsuspended_at?: string | null;
+  has_push_token?: boolean;
   is_verified: boolean;
   last_login?: string | null;
   dob?: string;
@@ -555,11 +562,15 @@ export interface AdminUser extends User {
   };
   bvn?: string;
   nin?: string;
-  kyc_tier?: 'TIER_ONE' | 'TIER_TWO' | 'TIER_THREE';
+  kyc_tier?: 'TIER_ZERO' | 'TIER_ONE' | 'TIER_TWO' | 'TIER_THREE';
   kyc_status?: 'pending' | 'approved' | 'rejected';
   maplerad_id?: string;
   virtual_account_number?: string;
   virtual_account_bank?: string;
+  paystack_account_number?: string;
+  paystack_account_name?: string;
+  paystack_bank_name?: string;
+  paystack_account_active?: boolean;
   statistics?: {
     total_transactions: number;
     successful_transactions: number;

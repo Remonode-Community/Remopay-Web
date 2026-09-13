@@ -74,6 +74,14 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
             const response = await authService.getUser();
             
             if (response.success && response.data?.user) {
+              // Check if account is suspended
+              if (response.data.user.status === 'suspended') {
+                console.warn('[AuthInitializer] Account suspended, clearing auth state');
+                useAuthStore.getState().logout();
+                router.replace('/auth/login?reason=suspended');
+                return;
+              }
+
               if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_VERBOSE_LOGS === 'true') {
                 console.log('[AuthInitializer] User data refreshed:', {
                   email: response.data.user.email,

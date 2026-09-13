@@ -470,8 +470,12 @@ export default function AdminUsersPage() {
       showAlert('Virtual account created successfully', 'success');
       setUserDetails({ ...userDetails, virtual_account_number: response?.data?.data?.virtual_accounts?.[0]?.virtual_account_number || 'Pending' });
     } catch (error: any) {
-      console.error('Error creating virtual account:', error);
-      showAlert(error?.response?.data?.message || 'Failed to create virtual account', 'error');
+      const data = error?.response?.data;
+      if (data?.requires_tier_upgrade) {
+        showAlert('User must upgrade to Tier 1 before a virtual account can be created.', 'error');
+      } else {
+        showAlert(data?.message || 'Failed to create virtual account', 'error');
+      }
     } finally {
       setCreatingVirtualAccount(false);
     }

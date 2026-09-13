@@ -301,6 +301,23 @@ class ApiClient {
 
         // Handle 403 - Forbidden access
         if (error.response?.status === 403) {
+          const errorData = error.response?.data as any;
+          
+          // Handle account suspension
+          if (errorData?.error_code === 'ACCOUNT_SUSPENDED') {
+            this.log('[ApiClient] Account suspended, clearing auth state');
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('token');
+              localStorage.removeItem('auth-store');
+            }
+            window.location.href = '/auth/login?reason=suspended';
+            return Promise.reject({
+              message: (errorData as any)?.message || 'Your account has been suspended.',
+              error_code: 'ACCOUNT_SUSPENDED',
+              status: 403,
+            });
+          }
+
           debug.error('[ApiClient] Got 403 - access forbidden');
           const formattedError = this.formatError(error);
           // Store 403 error in session for error modal to display

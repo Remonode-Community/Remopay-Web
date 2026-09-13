@@ -56,12 +56,12 @@ class AdminService {
     return apiClient.delete(`/admin/users/${userId}`);
   }
 
-  async suspendUser(userId: string): Promise<any> {
-    return apiClient.put(`/admin/users/${userId}/suspend`, {});
+  async suspendUser(userId: string, reason?: string): Promise<any> {
+    return apiClient.put(`/admin/users/${userId}/status`, { status: 'suspended', reason });
   }
 
   async activateUser(userId: string): Promise<any> {
-    return apiClient.put(`/admin/users/${userId}/activate`, {});
+    return apiClient.put(`/admin/users/${userId}/status`, { status: 'active' });
   }
 
   async verifyUser(userId: string): Promise<any> {
@@ -138,6 +138,10 @@ class AdminService {
 
   async createVirtualAccount(userId: string | number): Promise<any> {
     return apiClient.post(`/admin/users/${userId}/create-virtual-account`);
+  }
+
+  async sendTierUpgradeReminder(userId: string | number): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/send-tier-upgrade-reminder`);
   }
 
   // TRANSACTIONS ENDPOINTS
