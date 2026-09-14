@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Download, Printer, Share2, CheckCircle2, Building2 } from 'lucide-react';
+import { ArrowLeft, Download, Share2, CheckCircle2, Building2, Image as ImageIcon, FileText } from 'lucide-react';
+import { toPng } from 'html-to-image';
+import { jsPDF } from 'jspdf';
 
 import { transactionService } from '@/services/transaction.service';
 import { formatCurrency, formatDateTime } from '@/utils/format.utils';
@@ -13,6 +15,9 @@ import {
   LoadingSkeleton,
   ErrorState,
 } from '@/components/transactions';
+
+const BRAND = '#7c1a1a';
+const LOGO_URL = 'https://api.remopay.remonode.com/remopay.png';
 
 const TYPE_CONFIG: Record<string, { label: string }> = {
   wallet_funding:        { label: 'Wallet Funding' },
@@ -51,8 +56,8 @@ function ReceiptDivider() {
 function ReceiptSectionHeader({ icon: Icon, label }: { icon: any; label: string }) {
   return (
     <div className="flex items-center gap-1.5 mb-2">
-      <Icon className="h-3.5 w-3.5 text-[#d71927]" />
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-[#d71927]">{label}</span>
+      <Icon className="h-3.5 w-3.5" style={{ color: BRAND }} />
+      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: BRAND }}>{label}</span>
     </div>
   );
 }
@@ -64,7 +69,8 @@ export default function TransactionDetailPage() {
   const [data, setData] = useState<TransactionDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [shared, setShared] = useState(false);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'copying' | 'copied'>('idle');
+  const [generating, setGenerating] = useState(false);
 
   const loadTransaction = useCallback(async () => {
     try {
@@ -89,57 +95,127 @@ export default function TransactionDetailPage() {
 
   const handleBack = useCallback(() => router.push('/dashboard/history'), [router]);
 
-  const handleShare = async () => {
-    if (!data) return;
+  const getBankDetails = (): Record<string, string> | null => {
+    if (!data) return null;
+    if (data.metadata && typeof data.metadata.bank_details === 'object') {
+      const bd = data.metadata.bank_details as Record<string, any>;
+      if (bd.bank_name || bd.account_number) {
+        return { bank_name: bd.bank_name || '', account_name: bd.account_name || '', account_number: bd.account_number || '' };
+      }
+    }
+    const detailsMeta = data.details?.data?.metadata as Record<string, any> | undefined;
+    if (detailsMeta?.recipient?.details) {
+      const rd = detailsMeta.recipient.details as Record<string, any>;
+      if (rd.account_number || rd.bank_name) {
+        return { bank_name: rd.bank_name || '', account_name: rd.account_name || '', account_number: rd.account_number || '' };
+      }
+    }
+    if (data.metadata && typeof data.metadata.bank_details === 'object') {
+      return data.metadata.bank_details as Record<string, string>;
+    }
+    return null;
+  };
+
+  const buildReceiptText = (): string => {
+    if (!data) return '';
     const label = getTypeLabel(data.basic.transaction_type);
     const lines: string[] = [
       'REMOPAY TRANSACTION RECEIPT',
-      `${'─'.repeat(32)}`,
+      '─'.repeat(32),
       `Type: ${label}`,
       `Amount: ${formatCurrency(data.financial.amount)}`,
       `Status: ${data.basic.status?.toUpperCase()}`,
       `Reference: ${data.basic.reference}`,
       `Date: ${formatDateTime(data.timeline.transaction_date || data.timeline.created_at)}`,
     ];
-
     const bankDetails = getBankDetails();
     if (bankDetails) {
-      lines.push('', 'BANK DETAILS:');
-      lines.push(`${'─'.repeat(20)}`);
+      lines.push('', 'BANK DETAILS:', '─'.repeat(20));
       if (bankDetails.bank_name) lines.push(`Bank: ${bankDetails.bank_name}`);
       if (bankDetails.account_name) lines.push(`Name: ${bankDetails.account_name}`);
       if (bankDetails.account_number) lines.push(`Account: ${bankDetails.account_number}`);
     }
-
     if (data.source?.type === 'vtu' && data.source.recipient) {
       lines.push('', `Recipient: ${data.source.recipient}`);
       if (data.source.product_name) lines.push(`Product: ${data.source.product_name}`);
     }
-
     if (data.metadata?.sender_bank || data.metadata?.sender_name) {
-      lines.push('', 'FUNDING DETAILS:');
-      lines.push(`${'─'.repeat(20)}`);
+      lines.push('', 'FUNDING DETAILS:', '─'.repeat(20));
       if (data.metadata.sender_name) lines.push(`From: ${data.metadata.sender_name}`);
       if (data.metadata.sender_bank) lines.push(`Bank: ${data.metadata.sender_bank}`);
     }
-
-    lines.push('', `${'─'.repeat(32)}`, 'Powered by Remopay');
-
-    const shareText = lines.join('\n');
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Remopay Receipt', text: shareText });
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      }
-    } catch {}
+    lines.push('', '─'.repeat(32), 'Powered by Remopay');
+    return lines.join('\n');
   };
 
-  const handlePrint = () => window.print();
+  const handleShareImage = async () => {
+    if (!receiptRef.current) return;
+    try {
+      setGenerating(true);
+      const dataUrl = await toPng(receiptRef.current, {
+        pixelRatio: 2,
+        backgroundColor: '#f9fafb',
+        style: { borderRadius: '0px' },
+      });
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], 'remopay-receipt.png', { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: 'Remopay Receipt', files: [file] });
+      } else {
+        const link = document.createElement('a');
+        link.download = 'remopay-receipt.png';
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch (err) {
+      console.error('Failed to generate image:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!receiptRef.current) return;
+    try {
+      setGenerating(true);
+      const dataUrl = await toPng(receiptRef.current, {
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      });
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve) => { img.onload = resolve; });
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgRatio = img.width / img.height;
+      const imgWidth = pdfWidth - 20;
+      const imgHeight = imgWidth / imgRatio;
+
+      const x = 10;
+      const y = Math.max(10, (pdfHeight - imgHeight) / 2);
+      pdf.addImage(dataUrl, 'PNG', x, y, imgWidth, imgHeight);
+      pdf.save(`remopay-receipt-${data?.basic.reference || 'transaction'}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopyText = async () => {
+    const text = buildReceiptText();
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareStatus('copied');
+      setTimeout(() => setShareStatus('idle'), 2000);
+    } catch {
+      setShareStatus('idle');
+    }
+  };
 
   if (loading) return <div className="px-4 py-6"><LoadingSkeleton /></div>;
 
@@ -158,40 +234,7 @@ export default function TransactionDetailPage() {
   const isAirtimeConversion = data.source?.type === 'airtime_conversion';
   const isDebit = data.basic.transaction_type?.toLowerCase().includes('out') || data.basic.transaction_type === 'transfer';
 
-  const getBankDetails = (): Record<string, string> | null => {
-    // 1. Check metadata.bank_details (for transfers)
-    if (data.metadata && typeof data.metadata.bank_details === 'object') {
-      const bd = data.metadata.bank_details as Record<string, any>;
-      if (bd.bank_name || bd.account_number) {
-        return {
-          bank_name: bd.bank_name || '',
-          account_name: bd.account_name || '',
-          account_number: bd.account_number || '',
-        };
-      }
-    }
-    // 2. Check details.data.metadata.recipient.details (Maplerad transfers)
-    const detailsMeta = data.details?.data?.metadata as Record<string, any> | undefined;
-    if (detailsMeta?.recipient?.details) {
-      const rd = detailsMeta.recipient.details as Record<string, any>;
-      if (rd.account_number || rd.bank_name) {
-        return {
-          bank_name: rd.bank_name || '',
-          account_name: rd.account_name || '',
-          account_number: rd.account_number || '',
-        };
-      }
-    }
-    // 3. Check metadata.bank_details fallback
-    if (data.metadata && typeof data.metadata.bank_details === 'object') {
-      return data.metadata.bank_details as Record<string, string>;
-    }
-    return null;
-  };
-
   const bankDetails = getBankDetails();
-
-  // For wallet funding: sender bank info
   const senderBank = data.metadata?.sender_bank as string | undefined;
   const senderName = data.metadata?.sender_name as string | undefined;
 
@@ -211,35 +254,36 @@ export default function TransactionDetailPage() {
         }
       `}</style>
 
-      <div className="mx-auto max-w-md" ref={receiptRef}>
-        {/* Action Buttons (hidden on print) */}
+      <div className="mx-auto max-w-md">
+        {/* Action Buttons (hidden on print/share) */}
         <div className="no-print mb-4 flex items-center justify-between">
           <button onClick={handleBack} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-black transition-colors">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <div className="flex items-center gap-2">
-            {shared && (
+            {shareStatus === 'copied' && (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Copied!
               </span>
             )}
-            <button onClick={handleShare} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-              <Share2 className="h-3.5 w-3.5" /> Share
+            <button onClick={handleShareImage} disabled={generating} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              <ImageIcon className="h-3.5 w-3.5" /> {generating ? 'Generating...' : 'Image'}
             </button>
-            <button onClick={handlePrint} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-              <Printer className="h-3.5 w-3.5" /> Print
+            <button onClick={handleDownloadPDF} disabled={generating} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+              <FileText className="h-3.5 w-3.5" /> PDF
+            </button>
+            <button onClick={handleCopyText} className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+              <Share2 className="h-3.5 w-3.5" /> Copy
             </button>
           </div>
         </div>
 
         {/* ═══════════ RECEIPT CARD ═══════════ */}
-        <div className="bg-white border border-gray-200 shadow-sm print:shadow-none print:border print:border-gray-300 overflow-hidden">
+        <div ref={receiptRef} className="bg-white border border-gray-200 shadow-sm print:shadow-none print:border print:border-gray-300 overflow-hidden">
           {/* Brand Header */}
-          <div className="bg-[#d71927] px-6 py-5 print:bg-[#d71927]">
-            <div className="flex items-center justify-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                <span className="text-sm font-black text-white">R</span>
-              </div>
+          <div className="px-6 py-5" style={{ backgroundColor: BRAND }}>
+            <div className="flex items-center justify-center gap-2.5">
+              <img src={LOGO_URL} alt="Remopay" className="h-8 w-auto" style={{ filter: 'brightness(0) invert(1)' }} />
               <span className="text-lg font-bold text-white tracking-tight">Remopay</span>
             </div>
             <p className="mt-1 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-white/70">Transaction Receipt</p>
@@ -250,6 +294,18 @@ export default function TransactionDetailPage() {
             <div className="flex items-center justify-center gap-2 bg-green-50 py-3 border-b border-green-100">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <span className="text-xs font-bold uppercase tracking-wider text-green-700">Transaction Successful</span>
+            </div>
+          )}
+          {data.basic.status === 'failed' && (
+            <div className="flex items-center justify-center gap-2 bg-red-50 py-3 border-b border-red-100">
+              <CheckCircle2 className="h-4 w-4 text-red-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-red-600">Transaction Failed</span>
+            </div>
+          )}
+          {data.basic.status === 'pending' && (
+            <div className="flex items-center justify-center gap-2 bg-amber-50 py-3 border-b border-amber-100">
+              <CheckCircle2 className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-600">Transaction Pending</span>
             </div>
           )}
 
@@ -268,17 +324,11 @@ export default function TransactionDetailPage() {
 
           {/* Receipt Body */}
           <div className="px-6 py-4">
-            {/* Reference */}
             <ReceiptRow label="Reference" value={data.basic.reference} mono bold />
             <ReceiptDivider />
+            <ReceiptRow label="Date & Time" value={formatDateTime(data.timeline.transaction_date || data.timeline.created_at)} />
 
-            {/* Date & Time */}
-            <ReceiptRow
-              label="Date & Time"
-              value={formatDateTime(data.timeline.transaction_date || data.timeline.created_at)}
-            />
-
-            {/* ── VTU Details ── */}
+            {/* VTU Details */}
             {isVtu && data.source && data.source.type === 'vtu' && (
               <>
                 <ReceiptDivider />
@@ -287,7 +337,7 @@ export default function TransactionDetailPage() {
               </>
             )}
 
-            {/* ── Airtime Conversion Details ── */}
+            {/* Airtime Conversion */}
             {isAirtimeConversion && (
               <>
                 <ReceiptDivider />
@@ -296,7 +346,6 @@ export default function TransactionDetailPage() {
                 <ReceiptRow label="Rate" value={`₦${Number(data.financial.conversion_rate ?? 0).toFixed(4)}`} />
               </>
             )}
-
             {isAirtimeConversion && data.source && data.source.type === 'airtime_conversion' && (
               <>
                 <ReceiptDivider />
@@ -313,7 +362,7 @@ export default function TransactionDetailPage() {
               </>
             )}
 
-            {/* ── Bank Transfer Details ── */}
+            {/* Bank Transfer Details */}
             {bankDetails && (
               <>
                 <ReceiptDivider />
@@ -343,7 +392,7 @@ export default function TransactionDetailPage() {
               </>
             )}
 
-            {/* ── Wallet Funding: Sender Bank Details ── */}
+            {/* Wallet Funding: Sender Bank Details */}
             {!bankDetails && (senderBank || senderName) && (
               <>
                 <ReceiptDivider />
@@ -367,7 +416,7 @@ export default function TransactionDetailPage() {
               </>
             )}
 
-            {/* ── Wallet Transfer: Comprehensive Details ── */}
+            {/* Wallet Transfer Details */}
             {(!!data.metadata?.sender_name || !!data.metadata?.recipient_name) && (
               <>
                 <ReceiptDivider />
@@ -378,28 +427,24 @@ export default function TransactionDetailPage() {
                       {String((data.metadata as any)?.transfer_type || 'wallet transfer').replace(/_/g, ' ')}
                     </span>
                   </div>
-
                   {!!data.metadata?.sender_name && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">From</span>
                       <span className="font-bold text-gray-900 text-right max-w-[60%]">{String(data.metadata!.sender_name)}</span>
                     </div>
                   )}
-
                   {!!data.metadata?.recipient_name && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">To</span>
                       <span className="font-bold text-gray-900 text-right max-w-[60%]">{String(data.metadata!.recipient_name)}</span>
                     </div>
                   )}
-
                   {!!(data.metadata as any)?.description && (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-400">Note</span>
                       <span className="text-gray-600 text-right max-w-[60%]">{String((data.metadata as any).description)}</span>
                     </div>
                   )}
-
                   {data.details?.data?.balance_before != null && (
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-400">Balance Before</span>
@@ -416,7 +461,7 @@ export default function TransactionDetailPage() {
               </>
             )}
 
-            {/* ── Currency Conversion Details ── */}
+            {/* Currency Conversion */}
             {data.basic.transaction_type === 'Currency Conversion' && (
               <>
                 <ReceiptDivider />
@@ -441,9 +486,7 @@ export default function TransactionDetailPage() {
           {/* Receipt Footer */}
           <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
             <div className="flex items-center justify-center gap-2 mb-1.5">
-              <div className="flex h-5 w-5 items-center justify-center rounded bg-[#d71927]/10">
-                <span className="text-[8px] font-black text-[#d71927]">R</span>
-              </div>
+              <img src={LOGO_URL} alt="Remopay" className="h-4 w-auto" style={{ filter: 'brightness(0) saturate(100%) invert(27%) sepia(52%) saturate(3518%) hue-rotate(338deg) brightness(82%) contrast(95%)' }} />
               <span className="text-[11px] font-bold text-gray-600 tracking-tight">Remopay</span>
             </div>
             <p className="text-center text-[10px] text-gray-400">
@@ -453,10 +496,13 @@ export default function TransactionDetailPage() {
           </div>
         </div>
 
-        {/* Bottom Action (hidden on print) */}
-        <div className="no-print mt-5">
-          <button onClick={handlePrint} className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-            <Download className="h-4 w-4" /> Download Receipt (PDF)
+        {/* Bottom Actions (hidden on print) */}
+        <div className="no-print mt-5 flex gap-3">
+          <button onClick={handleShareImage} disabled={generating} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#7c1a1a] px-5 py-3 text-sm font-semibold text-white hover:opacity-90 transition-colors disabled:opacity-50">
+            <ImageIcon className="h-4 w-4" /> {generating ? 'Generating...' : 'Share as Image'}
+          </button>
+          <button onClick={handleDownloadPDF} disabled={generating} className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50">
+            <Download className="h-4 w-4" /> {generating ? 'Generating...' : 'Download PDF'}
           </button>
         </div>
       </div>
