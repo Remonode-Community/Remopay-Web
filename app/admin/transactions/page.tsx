@@ -101,7 +101,7 @@ export default function AdminTransactionsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [stats, setStats] = useState<TransactionStats>({});
+  const [aggregates, setAggregates] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -217,10 +217,11 @@ export default function AdminTransactionsPage() {
 
       const transactionsData = response?.data?.transactions;
       const paginationData = response?.data?.pagination;
+      const aggregatesData = response?.data?.aggregates;
 
       if (!response?.data) {
         setTransactions([]);
-        setStats({});
+        setAggregates(null);
         return;
       }
 
@@ -262,43 +263,12 @@ export default function AdminTransactionsPage() {
         });
       }
 
-      // Calculate stats
-      if (Array.isArray(transactionsData) && transactionsData.length > 0) {
-        const total = transactionsData.length;
-        const completed = transactionsData.filter(
-          (t: Transaction) => t.status === 'success' || t.status === 'completed'
-        ).length;
-        const failed = transactionsData.filter(
-          (t: Transaction) => t.status === 'failed'
-        ).length;
-        const pending = transactionsData.filter(
-          (t: Transaction) => t.status === 'pending'
-        ).length;
-        const totalAmount = transactionsData.reduce(
-          (sum: number, t: Transaction) => sum + Number(t.amount),
-          0
-        );
-
-        setStats({
-          total_transactions: total,
-          total_amount: totalAmount,
-          completed_count: completed,
-          failed_count: failed,
-          pending_count: pending,
-        });
-      } else {
-        setStats({
-          total_transactions: 0,
-          total_amount: 0,
-          completed_count: 0,
-          failed_count: 0,
-          pending_count: 0,
-        });
-      }
+      // Use backend aggregates (computed from ALL matching records)
+      setAggregates(aggregatesData || null);
     } catch (error) {
       console.error('[AdminTransactions] Error fetching transactions:', error);
       setTransactions([]);
-      setStats({});
+      setAggregates(null);
     } finally {
       setIsLoading(false);
     }
@@ -326,7 +296,7 @@ export default function AdminTransactionsPage() {
         }}
       />
       {/* Transaction Intelligence Dashboard */}
-      <TransactionIntelligence transactions={transactions} />
+      <TransactionIntelligence transactions={transactions} aggregates={aggregates} />
 
       {/* Filter Button */}
       <div className="flex justify-end">

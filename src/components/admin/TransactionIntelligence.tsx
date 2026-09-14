@@ -48,6 +48,26 @@ interface Transaction {
 
 interface TransactionIntelligenceProps {
   transactions: Transaction[];
+  aggregates?: {
+    total: number;
+    successful: number;
+    failed: number;
+    pending: number;
+    reversed: number;
+    total_volume: number;
+    success_volume: number;
+    failed_volume: number;
+    pending_volume: number;
+    avg_value: number;
+    success_rate: number;
+    failure_rate: number;
+    reversal_rate: number;
+    unique_users: number;
+    by_type: { type: string; count: number; volume: number }[];
+    by_status: { status: string; count: number; volume: number }[];
+    daily_trend: { date: string; count: number; volume: number }[];
+    hourly: { hour: number; count: number; volume: number }[];
+  } | null;
 }
 
 /* ────────── Color Tokens ────────── */
@@ -81,14 +101,14 @@ const STATUS_FILLS: Record<string, string> = {
 /* ────────── Helpers ────────── */
 
 function groupByDate(txns: Transaction[]) {
-  const map: Record<string, { count: number; amount: number }> = {};
+  const map: Record<string, { count: number; volume: number }> = {};
   txns.forEach((t) => {
     const d = new Date(t.transaction_date);
     if (isNaN(d.getTime())) return;
     const key = d.toLocaleDateString('en-NG', { month: 'short', day: 'numeric' });
-    if (!map[key]) map[key] = { count: 0, amount: 0 };
+    if (!map[key]) map[key] = { count: 0, volume: 0 };
     map[key].count += 1;
-    map[key].amount += Number(t.amount) || 0;
+    map[key].volume += Number(t.amount) || 0;
   });
   return Object.entries(map)
     .map(([date, data]) => ({ date, ...data }))
@@ -104,28 +124,28 @@ function groupByHour(txns: Transaction[]) {
     hour: i,
     label: `${String(i).padStart(2, '0')}:00`,
     count: 0,
-    amount: 0,
+    volume: 0,
   }));
   txns.forEach((t) => {
     const d = new Date(t.transaction_date);
     if (isNaN(d.getTime())) return;
     hours[d.getHours()].count += 1;
-    hours[d.getHours()].amount += Number(t.amount) || 0;
+    hours[d.getHours()].volume += Number(t.amount) || 0;
   });
   return hours;
 }
 
 function groupByType(txns: Transaction[]) {
-  const map: Record<string, { count: number; amount: number }> = {};
+  const map: Record<string, { count: number; volume: number }> = {};
   txns.forEach((t) => {
     const type = (t.transaction_type || 'Unknown').replace(/_/g, ' ');
-    if (!map[type]) map[type] = { count: 0, amount: 0 };
+    if (!map[type]) map[type] = { count: 0, volume: 0 };
     map[type].count += 1;
-    map[type].amount += Number(t.amount) || 0;
+    map[type].volume += Number(t.amount) || 0;
   });
   return Object.entries(map)
-    .map(([name, data]) => ({ name, ...data }))
-    .sort((a, b) => b.amount - a.amount);
+    .map(([type, data]) => ({ type, ...data }))
+    .sort((a, b) => b.volume - a.volume);
 }
 
 function groupByStatus(txns: Transaction[]) {
@@ -202,9 +222,29 @@ function ChartTooltipContent({ active, payload, label }: any) {
 
 /* ────────── Main Component ────────── */
 
-export function TransactionIntelligence({ transactions }: TransactionIntelligenceProps) {
-  /* ── Computed metrics ── */
+export function TransactionIntelligence({ transactions, aggregates }: TransactionIntelligenceProps) {
+  /* ── Use backend aggregates (all records) instead of computing from paginated data ── */
   const metrics = useMemo(() => {
+    if (aggregates) {
+      return {
+        total: aggregates.total,
+        successful: aggregates.successful,
+        failed: aggregates.failed,
+        pending: aggregates.pending,
+        reversed: aggregates.reversed,
+        totalVolume: aggregates.total_volume,
+        successVolume: aggregates.success_volume,
+        failedVolume: aggregates.failed_volume,
+        pendingVolume: aggregates.pending_volume,
+        avgValue: aggregates.avg_value,
+        successRate: aggregates.success_rate,
+        failureRate: aggregates.failure_rate,
+        reversalRate: aggregates.reversal_rate,
+        uniqueUsers: aggregates.unique_users,
+      };
+    }
+
+    // Fallback: compute from transactions if aggregates not available
     const total = transactions.length;
     const successful = transactions.filter(
       (t) => t.status === 'success' || t.status === 'completed'
@@ -241,13 +281,32 @@ export function TransactionIntelligence({ transactions }: TransactionIntelligenc
       reversalRate,
       uniqueUsers,
     };
-  }, [transactions]);
+  }, [transactions, aggregates]);
 
-  /* ── Chart data ── */
-  const trendData = useMemo(() => groupByDate(transactions), [transactions]);
-  const hourlyData = useMemo(() => groupByHour(transactions), [transactions]);
-  const typeData = useMemo(() => groupByType(transactions), [transactions]);
-  const statusData = useMemo(() => groupByStatus(transactions), [transactions]);
+  /* ── Chart data: use backend aggregates when available ── */
+  const trendData = useMemo(() => {
+    if (aggregates?.daily_trend?.length) return aggregates.daily_trend;
+    return groupByDate(transactions);
+  }, [aggregates, transactions]);
+
+  const hourlyData = useMemo(() => {
+    if (aggregates?.hourly?.length) return aggregates.hourly;
+    return groupByHour(transactions);
+  }, [aggregates, transactions]);
+
+  const typeData = useMemo(() => {
+    if (aggregates?.by_type?.length) return aggregates.by_type;
+    return groupByType(transactions);
+  }, [aggregates, transactions]);
+
+  const statusData = useMemo(() => {
+    const raw = aggregates?.by_status?.length ? aggregates.by_status : groupByStatus(transactions);
+    return raw.map((s: any) => ({
+      name: s.name || s.status || 'Unknown',
+      value: s.value || s.count || 0,
+      fill: s.fill || STATUS_FILLS[s.status] || COLORS.gray,
+    }));
+  }, [aggregates, transactions]);
 
   const maxHourlyCount = useMemo(
     () => (hourlyData.length > 0 ? Math.max(...hourlyData.map((h) => h.count)) : 1),
