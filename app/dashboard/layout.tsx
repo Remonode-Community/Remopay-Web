@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Activity,
   ArrowRightLeft,
+  Contact,
   CreditCard,
   DollarSign,
   FileText,
@@ -91,6 +92,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { href: '/dashboard/virtual-card', label: 'Virtual Cards', icon: CreditCard },
     { href: '/dashboard/usd-account', label: 'USD Account', icon: DollarSign },
     { href: '/dashboard/history', label: 'History', icon: Activity },
+    { href: '/dashboard/recipients', label: 'Saved Recipients', icon: Contact },
     { href: '/dashboard/referral', label: 'Referrals', icon: Users },
     { href: '/dashboard/support', label: 'Support', icon: Headphones },
     { href: '/dashboard/settings', label: 'Settings', icon: Settings },

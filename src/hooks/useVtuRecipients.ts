@@ -17,6 +17,7 @@ interface UseVtuRecipientsState {
   recipients: VtuRecipient[];
   recentlyUsed: VtuRecipient[];
   frequentlyUsed: VtuRecipient[];
+  favorites: VtuRecipient[];
   suggestions: RecipientSearchSuggestion[];
   selectedRecipient: VtuRecipient | null;
   isLoading: boolean;
@@ -35,6 +36,7 @@ const initialState: UseVtuRecipientsState = {
   recipients: [],
   recentlyUsed: [],
   frequentlyUsed: [],
+  favorites: [],
   suggestions: [],
   selectedRecipient: null,
   isLoading: false,
@@ -61,13 +63,13 @@ export const useVtuRecipients = () => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        // Fetch all recipients - don't filter by transaction_type/service_identifier
-        // The backend filtering may not work as expected, so we'll show all recipients
-        // and let the user search/manage them
         const response = await vtuRecipientsService.getAllRecipients({
-          page: 1,
-          per_page: 15,
-          search: params.search, // Only keep search parameter
+          page: params.page || 1,
+          per_page: params.per_page || 15,
+          search: params.search,
+          transaction_type: params.transaction_type,
+          service_identifier: params.service_identifier,
+          sort_by: params.sort_by,
         });
 
         if (response.success && Array.isArray(response.data)) {
@@ -320,6 +322,7 @@ export const useVtuRecipients = () => {
           setState((prev) => ({
             ...prev,
             recipients: prev.recipients.filter((r) => r.id !== id),
+            favorites: prev.favorites.filter((r) => r.id !== id),
             selectedRecipient:
               prev.selectedRecipient?.id === id ? null : prev.selectedRecipient,
             isLoading: false,
@@ -336,6 +339,79 @@ export const useVtuRecipients = () => {
         const errorMsg = error.message || 'Failed to delete recipient';
         debug.error('[useVtuRecipients] deleteRecipient error', error);
         setState((prev) => ({ ...prev, error: errorMsg, isLoading: false }));
+        addToast({
+          type: 'error',
+          message: errorMsg,
+        });
+      }
+    },
+    [addToast]
+  );
+
+  /**
+   * Fetch favorite recipients
+   */
+  const fetchFavorites = useCallback(
+    async (limit: number = 20) => {
+      setState((prev) => ({ ...prev, isLoading: true }));
+
+      try {
+        const response = await vtuRecipientsService.getFavorites(limit);
+
+        if (response.success && Array.isArray(response.data)) {
+          setState((prev) => ({
+            ...prev,
+            favorites: response.data as VtuRecipient[],
+            isLoading: false,
+          }));
+        } else {
+          throw new Error(response.message || 'Failed to fetch favorites');
+        }
+      } catch (error: any) {
+        debug.error('[useVtuRecipients] fetchFavorites error', error);
+        setState((prev) => ({ ...prev, isLoading: false }));
+      }
+    },
+    []
+  );
+
+  /**
+   * Toggle favorite status for a recipient
+   */
+  const toggleFavorite = useCallback(
+    async (id: number) => {
+      try {
+        const response = await vtuRecipientsService.toggleFavorite(id);
+
+        if (response.success && response.data?.data) {
+          const updated = response.data.data as VtuRecipient;
+
+          setState((prev) => ({
+            ...prev,
+            recipients: prev.recipients.map((r) =>
+              r.id === id ? { ...r, is_favorite: updated.is_favorite } : r
+            ),
+            recentlyUsed: prev.recentlyUsed.map((r) =>
+              r.id === id ? { ...r, is_favorite: updated.is_favorite } : r
+            ),
+            frequentlyUsed: prev.frequentlyUsed.map((r) =>
+              r.id === id ? { ...r, is_favorite: updated.is_favorite } : r
+            ),
+            favorites: updated.is_favorite
+              ? [...prev.favorites.filter((r) => r.id !== id), updated]
+              : prev.favorites.filter((r) => r.id !== id),
+          }));
+
+          addToast({
+            type: 'success',
+            message: updated.is_favorite ? 'Added to favorites' : 'Removed from favorites',
+          });
+        } else {
+          throw new Error(response.message || 'Failed to toggle favorite');
+        }
+      } catch (error: any) {
+        const errorMsg = error.message || 'Failed to toggle favorite';
+        debug.error('[useVtuRecipients] toggleFavorite error', error);
         addToast({
           type: 'error',
           message: errorMsg,
@@ -364,11 +440,13 @@ export const useVtuRecipients = () => {
     fetchRecipients,
     fetchRecentlyUsed,
     fetchFrequentlyUsed,
+    fetchFavorites,
     searchRecipients,
     clearSuggestions,
     updateRecipient,
     recordUsage,
     deleteRecipient,
+    toggleFavorite,
     selectRecipient,
     clearError,
   };

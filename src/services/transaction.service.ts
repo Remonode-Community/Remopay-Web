@@ -37,23 +37,6 @@ export interface TransactionsApiResponse {
       from: number;
       to: number;
     };
-    aggregates?: {
-      total: number;
-      successful: number;
-      failed: number;
-      pending: number;
-      reversed: number;
-      total_volume: number;
-      success_volume: number;
-      failed_volume: number;
-      pending_volume: number;
-      avg_value: number;
-      success_rate: number;
-      by_type: { type: string; count: number; volume: number }[];
-      by_status: { status: string; count: number; volume: number }[];
-      daily_trend: { date: string; count: number; volume: number }[];
-      monthly_trend: { month: string; count: number; volume: number }[];
-    };
   };
 }
 

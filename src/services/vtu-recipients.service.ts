@@ -210,6 +210,46 @@ class VtuRecipientsService {
       throw error;
     }
   }
+
+  /**
+   * Toggle favorite status for a recipient
+   */
+  async toggleFavorite(id: number): Promise<ApiResponse<{ data: VtuRecipient }>> {
+    try {
+      debug.log('[VtuRecipientsService] Toggling favorite', { id });
+      
+      const response = await apiClient.post<{ data: VtuRecipient }>(`/vtu/recipients/${id}/toggle-favorite`);
+      
+      debug.log('[VtuRecipientsService] Favorite toggled successfully', { id });
+      
+      return response;
+    } catch (error: any) {
+      debug.error('[VtuRecipientsService] Failed to toggle favorite', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all favorite recipients
+   */
+  async getFavorites(limit: number = 20): Promise<ApiResponse<VtuRecipient[]>> {
+    try {
+      debug.log('[VtuRecipientsService] Fetching favorites', { limit });
+      
+      const response = await apiClient.get<VtuRecipient[]>('/vtu/recipients/favorites', {
+        params: { limit },
+      });
+      
+      debug.log('[VtuRecipientsService] Favorites fetched', {
+        count: response.data?.length,
+      });
+      
+      return response;
+    } catch (error: any) {
+      debug.error('[VtuRecipientsService] Failed to fetch favorites', error);
+      throw error;
+    }
+  }
 }
 
 export const vtuRecipientsService = new VtuRecipientsService();

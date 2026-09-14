@@ -850,6 +850,7 @@ export interface VtuRecipient {
   usage_count: number;
   last_used_at?: string | null;
   is_active: boolean;
+  is_favorite: boolean;
   metadata?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
@@ -876,6 +877,7 @@ export interface RecipientSearchSuggestion {
   transaction_type: string;
   usage_count: number;
   last_used_at?: string | null;
+  is_favorite?: boolean;
 }
 
 export interface SearchRecipientsSuggestRequest {

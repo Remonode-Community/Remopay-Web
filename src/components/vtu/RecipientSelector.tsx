@@ -40,25 +40,29 @@ export const RecipientSelector: React.FC<RecipientSelectorProps> = ({
   const {
     recentlyUsed,
     frequentlyUsed,
+    favorites,
     suggestions,
     isSearching,
     isLoading: isLoadingRecipients,
     fetchRecentlyUsed,
     fetchFrequentlyUsed,
+    fetchFavorites,
     searchRecipients,
     recordUsage,
+    toggleFavorite,
   } = useVtuRecipients();
 
   const [showManagerModal, setShowManagerModal] = useState(false);
   const [selectedRecipientId, setSelectedRecipientId] = useState<number | null>(null);
 
-  // Load recent and frequent recipients on mount
+  // Load recent, frequent, and favorite recipients on mount
   useEffect(() => {
     if (showQuickSelect) {
       fetchRecentlyUsed(5, transactionType, serviceIdentifier);
       fetchFrequentlyUsed(3, transactionType, serviceIdentifier);
+      fetchFavorites(5);
     }
-  }, [showQuickSelect, transactionType, serviceIdentifier, fetchRecentlyUsed, fetchFrequentlyUsed]);
+  }, [showQuickSelect, transactionType, serviceIdentifier, fetchRecentlyUsed, fetchFrequentlyUsed, fetchFavorites]);
 
   const handleSearch = useCallback(
     (searchValue: string) => {
@@ -128,9 +132,11 @@ export const RecipientSelector: React.FC<RecipientSelectorProps> = ({
           </div>
 
           <RecipientQuickSelect
+            favorites={favorites}
             recentlyUsed={recentlyUsed}
             frequentlyUsed={frequentlyUsed}
             onSelect={handleQuickSelectRecipient}
+            onToggleFavorite={toggleFavorite}
             onAddNew={
               showManager ? () => setShowManagerModal(true) : undefined
             }

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import {
   AlertCircle,
   ArrowRight,
-  BarChart3,
   CheckCircle,
   ChevronLeft,
   ChevronRight,
@@ -26,7 +25,6 @@ import { Badge } from '@/components/shared/Badge';
 import { DashboardSkeleton } from '@/components/shared/SkeletonLoader';
 import { AdCarousel } from '@/components/dashboard/AdCarousel';
 import { AccountsCarousel, UnifiedAccount } from '@/components/dashboard/AccountsCarousel';
-import { UserTransactionInsights } from '@/components/dashboard/UserTransactionInsights';
 import { walletService } from '@/services/wallet.service';
 import { transactionService } from '@/services/transaction.service';
 import { customerService, DedicatedAccount } from '@/services/customer.service';
@@ -145,7 +143,6 @@ export default function DashboardPage() {
 
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
-  const [aggregates, setAggregates] = useState<any>(null);
   const [dedicatedAccount, setDedicatedAccount] = useState<DedicatedAccount | null>(null);
   const [virtualAccounts, setVirtualAccounts] = useState<VirtualAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -238,10 +235,6 @@ export default function DashboardPage() {
           // Normalize nested API format to flat format the table expects
           const normalized = transactionsRes.data.transactions.map(normalizeTransaction);
           setTransactions(normalized);
-
-          if (transactionsRes.data.aggregates) {
-            setAggregates(transactionsRes.data.aggregates);
-          }
 
           if (transactionsRes.data.pagination) {
             setPagination({
@@ -534,10 +527,6 @@ export default function DashboardPage() {
           })}
         </div>
       </section>
-
-      {aggregates && aggregates.total > 0 && (
-        <UserTransactionInsights aggregates={aggregates} />
-      )}
 
       <section>
         <Card className="overflow-hidden rounded-2xl sm:rounded-3xl border border-[#d71927]/10 bg-white shadow-sm">

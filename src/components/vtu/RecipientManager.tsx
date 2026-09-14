@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Loader2,
   Search,
+  Star,
 } from 'lucide-react';
 import { VtuRecipient } from '@/types/api.types';
 import { useVtuRecipients } from '@/hooks/useVtuRecipients';
@@ -35,6 +36,7 @@ export const RecipientManager: React.FC<RecipientManagerProps> = ({
     fetchRecipients,
     deleteRecipient,
     updateRecipient,
+    toggleFavorite,
   } = useVtuRecipients();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -149,12 +151,15 @@ export const RecipientManager: React.FC<RecipientManagerProps> = ({
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           placeholder="Enter name"
-                          className="flex-1 px-3 py-1 border border-blue-500 rounded bg-blue-50 text-sm"
+                          className="flex-1 px-3 py-1 border border-[#d71927] rounded bg-[#fff8f8] text-sm"
                           autoFocus
                         />
                       ) : (
                         <>
-                          <p className="font-medium text-gray-900">
+                          {recipient.is_favorite && (
+                            <Star className="h-3.5 w-3.5 text-amber-400 fill-current flex-shrink-0" />
+                          )}
+                          <p className="font-semibold text-gray-900">
                             {recipient.credential}
                           </p>
                           {recipient.is_active && (
@@ -213,6 +218,18 @@ export const RecipientManager: React.FC<RecipientManagerProps> = ({
                       </div>
                     ) : (
                       <>
+                        <button
+                          onClick={() => toggleFavorite(recipient.id)}
+                          className={`p-2 rounded transition ${
+                            recipient.is_favorite
+                              ? 'text-amber-500 hover:text-amber-600'
+                              : 'text-gray-400 hover:text-amber-500'
+                          }`}
+                          type="button"
+                          title={recipient.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <Star className={`h-4 w-4 ${recipient.is_favorite ? 'fill-current' : ''}`} />
+                        </button>
                         <button
                           onClick={() => handleEdit(recipient)}
                           className="p-2 hover:bg-blue-100 text-gray-600 hover:text-blue-600 rounded transition opacity-0 group-hover:opacity-100"

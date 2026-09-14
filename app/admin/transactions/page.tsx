@@ -112,6 +112,7 @@ export default function AdminTransactionsPage() {
   });
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [activeDateRange, setActiveDateRange] = useState('all');
 
   const isAdmin = useMemo(() => {
     return Boolean(user?.roles?.some((role) => role === 'admin'));
@@ -208,6 +209,27 @@ export default function AdminTransactionsPage() {
     },
   });
 
+  const handleDateRangeChange = useCallback((range: { date_from?: string; date_to?: string; label: string }) => {
+    setActiveDateRange(range.label);
+    const newFilters: Record<string, any> = { ...filters };
+    if (range.date_from) {
+      newFilters.date_from = range.date_from;
+    } else {
+      delete newFilters.date_from;
+    }
+    if (range.date_to) {
+      newFilters.date_to = range.date_to;
+    } else {
+      delete newFilters.date_to;
+    }
+    applyFilters(newFilters);
+  }, [filters, applyFilters]);
+
+  const handleResetFilters = useCallback(() => {
+    setActiveDateRange('all');
+    resetFilters();
+  }, [resetFilters]);
+
   const fetchTransactions = async (page = 1, filterValues?: Record<string, any>) => {
     try {
       setIsLoading(true);
@@ -296,7 +318,12 @@ export default function AdminTransactionsPage() {
         }}
       />
       {/* Transaction Intelligence Dashboard */}
-      <TransactionIntelligence transactions={transactions} aggregates={aggregates} />
+      <TransactionIntelligence
+        transactions={transactions}
+        aggregates={aggregates}
+        activeDateRange={activeDateRange}
+        onDateRangeChange={handleDateRangeChange}
+      />
 
       {/* Filter Button */}
       <div className="flex justify-end">
@@ -322,7 +349,7 @@ export default function AdminTransactionsPage() {
         isOpen={isOpen}
         onClose={closeFilters}
         onApply={applyFilters}
-        onReset={resetFilters}
+        onReset={handleResetFilters}
         isLoading={filtersLoading}
         position="right"
         mobilePosition="auto"
@@ -358,7 +385,7 @@ export default function AdminTransactionsPage() {
               Try adjusting the search terms or resetting the filters.
             </p>
             {hasActiveFilters && (
-              <Button variant="outline" className="mt-4" onClick={resetFilters}>
+              <Button variant="outline" className="mt-4" onClick={handleResetFilters}>
                 Reset Filters
               </Button>
             )}
