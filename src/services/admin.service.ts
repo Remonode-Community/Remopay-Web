@@ -136,6 +136,14 @@ class AdminService {
     return apiClient.post(`/admin/users/${userId}/role`, { role });
   }
 
+  async changeUserRoles(userId: string | number, roles: string[]): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/role`, { roles });
+  }
+
+  async revokeUserRole(userId: string | number, roleName: string): Promise<any> {
+    return apiClient.delete(`/admin/users/${userId}/role/${roleName}`);
+  }
+
   async createVirtualAccount(userId: string | number): Promise<any> {
     return apiClient.post(`/admin/users/${userId}/create-virtual-account`);
   }

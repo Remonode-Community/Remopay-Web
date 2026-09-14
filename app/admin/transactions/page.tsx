@@ -316,7 +316,7 @@ export default function AdminTransactionsPage() {
   const isPaginationLoading = isLoading && transactions.length > 0;
 
   return (
-    <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-6 text-slate-950 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white">
+    <div className="min-h-screen space-y-6 bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#f8f8f8] p-4 text-slate-950 sm:p-6 dark:bg-[radial-gradient(circle_at_top_right,rgba(215,25,39,0.12),transparent_32%),#090707] dark:text-white">
       <AdminHeader
         title="Transactions"
         description="View and manage all platform transactions with user information"
@@ -360,7 +360,7 @@ export default function AdminTransactionsPage() {
 
       {/* Transactions Section */}
       <Card className="overflow-hidden rounded-2xl border border-[#e5e7eb]">
-        <div className="border-b border-[#e5e7eb] bg-white px-6 py-4">
+        <div className="border-b border-[#e5e7eb] bg-white px-4 py-4 sm:px-6">
           <h3 className="text-lg font-bold text-[#111827]">All Transactions</h3>
           <p className="text-sm text-[#6b7280] mt-1">
             Showing {pagination.total === 0 ? 0 : (pagination.currentPage - 1) * pagination.perPage + 1}
@@ -529,7 +529,7 @@ export default function AdminTransactionsPage() {
 
             {/* ───── Pagination ───── */}
             {pagination.lastPage > 1 && (
-              <div className="flex flex-col gap-4 rounded-b-2xl border-t border-[#e5e7eb] bg-white px-6 py-5">
+              <div className="flex flex-col gap-4 rounded-b-2xl border-t border-[#e5e7eb] bg-white px-4 py-5 sm:px-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-sm font-medium text-[#6b7280]">
                     Showing{' '}

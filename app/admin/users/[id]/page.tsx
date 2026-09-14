@@ -209,7 +209,7 @@ export default function AdminUserDetailPage() {
   const [showSuspendModal, setShowSuspendModal] = useState(false);
 
   // Form states
-  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
   const [notificationData, setNotificationData] = useState({ title: '', body: '' });
   const [emailData, setEmailData] = useState({ title: '', body: '' });
@@ -313,11 +313,17 @@ export default function AdminUserDetailPage() {
   };
 
   const handleAssignRole = () => {
-    if (!selectedRole) return;
-    handleAction('Change Role', async () => {
-      await adminService.changeUserRole(userId, selectedRole);
+    if (selectedRoles.length === 0) return;
+    handleAction('Update Roles', async () => {
+      await adminService.changeUserRoles(userId, selectedRoles);
       setShowRoleModal(false);
-      setSelectedRole('');
+      setSelectedRoles([]);
+    });
+  };
+
+  const handleRevokeRole = (roleName: string) => {
+    handleAction('Revoke Role', async () => {
+      await adminService.revokeUserRole(userId, roleName);
     });
   };
 
@@ -896,9 +902,9 @@ export default function AdminUserDetailPage() {
                 )}
 
                 <ActionButton
-                  label="Change Role"
+                  label="Manage Roles"
                   icon={Users}
-                  onClick={() => { fetchRoles(); setShowRoleModal(true); }}
+                  onClick={() => { fetchRoles(); setSelectedRoles(user.roles || []); setShowRoleModal(true); }}
                 />
 
                 <div className="border-t border-gray-100 pt-2">
@@ -919,9 +925,18 @@ export default function AdminUserDetailPage() {
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {user.roles && user.roles.length > 0 ? (
                       user.roles.map((role) => (
-                        <Badge key={role} variant={role === 'admin' ? 'danger' : role === 'agent' ? 'warning' : 'info'} size="sm">
-                          {role}
-                        </Badge>
+                        <div key={role} className="group flex items-center gap-1">
+                          <Badge variant={role === 'admin' ? 'danger' : role === 'agent' ? 'warning' : 'info'} size="sm">
+                            {role}
+                          </Badge>
+                          <button
+                            onClick={() => handleRevokeRole(role)}
+                            className="hidden h-4 w-4 items-center justify-center rounded-full bg-red-100 text-red-600 transition-colors hover:bg-red-200 group-hover:inline-flex"
+                            title={`Revoke ${role} role`}
+                          >
+                            <span className="text-[10px] leading-none">&times;</span>
+                          </button>
+                        </div>
                       ))
                     ) : (
                       <span className="text-xs text-gray-400">No roles assigned</span>
@@ -1078,27 +1093,47 @@ export default function AdminUserDetailPage() {
         {showRoleModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-              <h3 className="text-lg font-bold text-gray-900">Change Role</h3>
-              <p className="mt-1 text-sm text-gray-500">Assign a new role to {fullName}.</p>
+              <h3 className="text-lg font-bold text-gray-900">Manage Roles</h3>
+              <p className="mt-1 text-sm text-gray-500">Select roles for {fullName}. Current roles are pre-selected.</p>
               <div className="mt-4 space-y-2">
-                {roles.map((role) => (
-                  <button
-                    key={role.id}
-                    type="button"
-                    onClick={() => setSelectedRole(role.name)}
-                    className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all ${
-                      selectedRole === role.name
-                        ? 'border-[#d71927] bg-red-50 text-[#d71927]'
-                        : 'border-gray-200 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {role.name}
-                  </button>
-                ))}
+                {roles.map((role) => {
+                  const isSelected = selectedRoles.includes(role.name);
+                  const isCurrentRole = user.roles?.includes(role.name);
+                  return (
+                    <button
+                      key={role.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRoles((prev) =>
+                          isSelected ? prev.filter((r) => r !== role.name) : [...prev, role.name]
+                        );
+                      }}
+                      className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'border-[#d71927] bg-red-50 text-[#d71927]'
+                          : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span>{role.name}</span>
+                        {isCurrentRole && !isSelected && (
+                          <span className="text-[10px] font-semibold uppercase text-gray-400">current</span>
+                        )}
+                        {isSelected && (
+                          <span className="h-4 w-4 rounded border-2 border-[#d71927] bg-[#d71927] flex items-center justify-center">
+                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
               <div className="mt-6 flex gap-3">
-                <Button variant="outline" onClick={() => setShowRoleModal(false)} className="flex-1">Cancel</Button>
-                <Button variant="primary" onClick={handleAssignRole} disabled={!selectedRole} isLoading={loadingAction === 'Change Role'} className="flex-1">Assign</Button>
+                <Button variant="outline" onClick={() => { setShowRoleModal(false); setSelectedRoles([]); }} className="flex-1">Cancel</Button>
+                <Button variant="primary" onClick={handleAssignRole} disabled={selectedRoles.length === 0} isLoading={loadingAction === 'Update Roles'} className="flex-1">Save Roles</Button>
               </div>
             </div>
           </div>

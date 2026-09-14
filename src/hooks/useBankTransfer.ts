@@ -243,6 +243,7 @@ export const useBankTransfer = (options?: UseBankTransferOptions) => {
         const payload: any = {
           account_number: formData.accountNumber,
           bank_code: formData.selectedBank.code,
+          bank_name: formData.selectedBank.name,
           account_name: formData.accountName,
           amount: formData.amount,
           pin,

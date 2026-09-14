@@ -177,7 +177,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
       <div className="flex h-screen overflow-hidden bg-[#100303] text-white">
         <aside
           className={clsx(
-            'hidden shrink-0 flex-col border-r border-white/10 bg-[#140404] transition-all duration-300 md:flex',
+            'no-print hidden shrink-0 flex-col border-r border-white/10 bg-[#140404] transition-all duration-300 md:flex',
             sidebarOpen ? 'w-72' : 'w-24'
           )}
         >
@@ -185,10 +185,12 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar
-            onMenuToggle={() => setMobileMenuOpen((open) => !open)}
-            mobileMenuOpen={mobileMenuOpen}
-          />
+          <div className="no-print">
+            <Topbar
+              onMenuToggle={() => setMobileMenuOpen((open) => !open)}
+              mobileMenuOpen={mobileMenuOpen}
+            />
+          </div>
 
           {mobileMenuOpen && (
             <div

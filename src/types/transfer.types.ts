@@ -142,6 +142,7 @@ export interface RemopayTransferResponse {
 export interface BankTransferRequest {
   account_number: string; // 10 digits
   bank_code: string; // 3 digits
+  bank_name?: string; // Human-readable bank name
   account_name: string;
   amount: number; // In NGN
   reason?: string;
