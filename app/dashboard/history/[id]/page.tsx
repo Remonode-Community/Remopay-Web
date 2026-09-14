@@ -283,7 +283,7 @@ export default function TransactionDetailPage() {
           {/* Brand Header */}
           <div className="px-6 py-5" style={{ backgroundColor: BRAND }}>
             <div className="flex items-center justify-center gap-2.5">
-              <img src={LOGO_URL} alt="Remopay" className="h-8 w-auto" style={{ filter: 'brightness(0) invert(1)' }} />
+              <img src={LOGO_URL} alt="Remopay" className="h-9 w-9 rounded-full object-cover" />
               <span className="text-lg font-bold text-white tracking-tight">Remopay</span>
             </div>
             <p className="mt-1 text-center text-[10px] font-medium uppercase tracking-[0.2em] text-white/70">Transaction Receipt</p>
@@ -486,7 +486,7 @@ export default function TransactionDetailPage() {
           {/* Receipt Footer */}
           <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
             <div className="flex items-center justify-center gap-2 mb-1.5">
-              <img src={LOGO_URL} alt="Remopay" className="h-4 w-auto" style={{ filter: 'brightness(0) saturate(100%) invert(27%) sepia(52%) saturate(3518%) hue-rotate(338deg) brightness(82%) contrast(95%)' }} />
+              <img src={LOGO_URL} alt="Remopay" className="h-5 w-5 rounded-full object-cover" />
               <span className="text-[11px] font-bold text-gray-600 tracking-tight">Remopay</span>
             </div>
             <p className="text-center text-[10px] text-gray-400">
