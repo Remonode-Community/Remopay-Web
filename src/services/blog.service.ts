@@ -227,6 +227,10 @@ class BlogService {
         scheduled: counts.scheduled,
         archived: counts.archived,
         featured: counts.featured,
+        total_comments: counts.total_comments,
+        total_ratings: counts.total_ratings,
+        avg_rating: counts.avg_rating,
+        total_likes: counts.total_likes,
       },
       categories: counts.categories,
       tags: counts.tags,
@@ -235,6 +239,7 @@ class BlogService {
       recent_posts: (record.recent_posts as BlogDashboardOverview['recent_posts']) || undefined,
       recent_campaigns:
         (record.recent_campaigns as BlogDashboardOverview['recent_campaigns']) || undefined,
+      popular_posts: (record.popular_posts as BlogDashboardOverview['popular_posts']) || undefined,
     };
 
     return { ...res, data: normalized };

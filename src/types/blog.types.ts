@@ -375,6 +375,10 @@ export interface BlogDashboardOverview {
     scheduled?: number;
     archived?: number;
     featured?: number;
+    total_comments?: number;
+    total_ratings?: number;
+    avg_rating?: number;
+    total_likes?: number;
   };
   counts?: {
     total_posts?: number;
