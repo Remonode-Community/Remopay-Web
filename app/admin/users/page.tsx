@@ -3108,7 +3108,7 @@ export default function AdminUsersPage() {
                               Image URL <span className="text-red-500">*</span>
                             </label>
                             <Input
-                              placeholder="https://cdn.remopay.app/promotions/banner.png"
+                              placeholder="https://api.remopay.remonode.com/promotions/banner.png"
                               value={banner.image_url}
                               onChange={(e) => {
                                 const updated = [...bulkEmailData.inline_banners];
