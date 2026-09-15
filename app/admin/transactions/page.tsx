@@ -157,10 +157,23 @@ export default function AdminTransactionsPage() {
     },
     {
       id: 'user_id',
-      label: 'User ID',
-      type: 'number',
-      placeholder: 'Filter by user ID',
-      helpText: 'Enter a user ID to see their transactions',
+      label: 'Filter by User',
+      type: 'user-search',
+      placeholder: 'Type name or email to search...',
+      helpText: 'Search by name or email to filter transactions',
+      searchFn: async (query: string) => {
+        try {
+          const response = await adminService.searchUsers(query, 10);
+          const users = response?.data?.data || [];
+          return users.map((u: any) => ({
+            id: u.id,
+            label: `${u.first_name || ''} ${u.last_name || ''}`.trim() || `User #${u.id}`,
+            subtitle: u.email,
+          }));
+        } catch {
+          return [];
+        }
+      },
     },
     {
       id: 'date_from',

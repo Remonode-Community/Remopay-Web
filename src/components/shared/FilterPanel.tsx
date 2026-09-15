@@ -1,10 +1,16 @@
 'use client';
 
-import { useState, ReactNode, useCallback, useMemo } from 'react';
-import { X, RotateCcw, Check } from 'lucide-react';
+import { useState, ReactNode, useCallback, useMemo, useRef, useEffect } from 'react';
+import { X, RotateCcw, Check, Search, User } from 'lucide-react';
 import { Button } from './Button';
 
-export type FilterInputType = 'text' | 'select' | 'date' | 'checkbox' | 'number';
+export type FilterInputType = 'text' | 'select' | 'date' | 'checkbox' | 'number' | 'user-search';
+
+export interface SearchResult {
+  id: string | number;
+  label: string;
+  subtitle?: string;
+}
 
 export interface FilterField {
   id: string;
@@ -15,6 +21,8 @@ export interface FilterField {
   options?: Array<{ value: string | boolean; label: string }>;
   required?: boolean;
   helpText?: string;
+  searchFn?: (query: string) => Promise<SearchResult[]>;
+  renderResult?: (result: SearchResult) => ReactNode;
 }
 
 export interface FilterConfig {
@@ -355,7 +363,149 @@ function FilterField({ field, value, onChange }: FilterFieldProps) {
         </label>
       );
 
+    case 'user-search':
+      return (
+        <UserSearchField field={field} value={value} onChange={onChange} />
+      );
+
     default:
       return null;
   }
+}
+
+function UserSearchField({ field, value, onChange }: FilterFieldProps) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedLabel, setSelectedLabel] = useState('');
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const doSearch = useCallback(
+    (q: string) => {
+      if (!field.searchFn || q.trim().length < 2) {
+        setResults([]);
+        setIsOpen(false);
+        return;
+      }
+      setIsLoading(true);
+      setIsOpen(true);
+      field.searchFn(q.trim()).then((items) => {
+        setResults(items);
+        setIsLoading(false);
+      }).catch(() => {
+        setResults([]);
+        setIsLoading(false);
+      });
+    },
+    [field.searchFn]
+  );
+
+  const handleQueryChange = useCallback(
+    (val: string) => {
+      setQuery(val);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => doSearch(val), 300);
+    },
+    [doSearch]
+  );
+
+  const handleSelect = useCallback(
+    (result: SearchResult) => {
+      onChange(result.id);
+      setSelectedLabel(result.label);
+      setQuery('');
+      setResults([]);
+      setIsOpen(false);
+    },
+    [onChange]
+  );
+
+  const handleClear = useCallback(() => {
+    onChange('');
+    setSelectedLabel('');
+    setQuery('');
+    setResults([]);
+    setIsOpen(false);
+  }, [onChange]);
+
+  return (
+    <div ref={containerRef}>
+      <label className="block text-sm font-black text-[#111] mb-2">
+        {field.label}
+        {field.required && <span className="text-[#d71927]">*</span>}
+      </label>
+
+      {/* Selected value chip or search input */}
+      {value ? (
+        <div className="flex items-center gap-2 rounded-lg border-2 border-[#d71927]/20 bg-[#d71927]/5 px-3 py-2">
+          <User className="h-4 w-4 text-[#d71927] shrink-0" />
+          <span className="flex-1 text-sm font-medium text-[#111] truncate">{selectedLabel || `User #${value}`}</span>
+          <button type="button" onClick={handleClear} className="ml-1 rounded p-0.5 hover:bg-black/5">
+            <X className="h-3.5 w-3.5 text-black/40" />
+          </button>
+        </div>
+      ) : (
+        <div className="relative">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/35 pointer-events-none" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => handleQueryChange(e.target.value)}
+              onFocus={() => query.length >= 2 && results.length > 0 && setIsOpen(true)}
+              placeholder={field.placeholder || 'Type to search users...'}
+              className="w-full rounded-lg border-2 border-black/10 bg-white pl-9 pr-3 py-2 text-sm text-[#111] outline-none transition placeholder:text-black/35 focus:border-[#d71927] focus:ring-4 focus:ring-[#d71927]/10"
+            />
+          </div>
+
+          {/* Dropdown */}
+          {isOpen && (
+            <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-black/10 bg-white shadow-lg">
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 px-4 py-3 text-sm text-black/50">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#d71927] border-t-transparent" />
+                  Searching...
+                </div>
+              ) : results.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-black/50">No users found</div>
+              ) : (
+                results.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => handleSelect(r)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f8f8f8] transition-colors border-b border-black/5 last:border-0"
+                  >
+                    <User className="h-4 w-4 text-black/30 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[#111] truncate">{r.label}</p>
+                      {r.subtitle && (
+                        <p className="text-xs text-black/50 truncate">{r.subtitle}</p>
+                      )}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {field.helpText && (
+        <p className="mt-1 text-xs text-black/50">{field.helpText}</p>
+      )}
+    </div>
+  );
 }

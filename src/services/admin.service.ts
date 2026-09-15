@@ -44,6 +44,14 @@ class AdminService {
     return apiClient.get(`/admin/users/${userId}`);
   }
 
+  async searchUsers(query: string, limit = 10): Promise<ApiResponse<PaginatedResponse<AdminUser>>> {
+    const params = new URLSearchParams();
+    params.append('search', query);
+    params.append('per_page', String(limit));
+    params.append('page', '1');
+    return apiClient.get(`/admin/users?${params.toString()}`);
+  }
+
   async createUser(data: any): Promise<any> {
     return apiClient.post('/admin/users', data);
   }
