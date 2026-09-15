@@ -163,8 +163,8 @@ export default function AdminTransactionsPage() {
       helpText: 'Search by name or email to filter transactions',
       searchFn: async (query: string) => {
         try {
-          const response = await adminService.searchUsers(query, 10);
-          const users = response?.data?.data || [];
+          const response = await adminService.searchUsers(query, 10) as any;
+          const users = response?.data || [];
           return users.map((u: any) => ({
             id: u.id,
             label: `${u.first_name || ''} ${u.last_name || ''}`.trim() || `User #${u.id}`,
@@ -366,6 +366,7 @@ export default function AdminTransactionsPage() {
         isLoading={filtersLoading}
         position="right"
         mobilePosition="auto"
+        currentFilters={filters}
       />
 
       {/* Transactions Section */}

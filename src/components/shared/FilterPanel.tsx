@@ -44,6 +44,8 @@ interface FilterPanelProps extends FilterConfig {
   position?: 'right' | 'top';
   /** Mobile breakpoint - default 'md' (768px) */
   mobilePosition?: 'top' | 'right' | 'auto';
+  /** Current filter values from parent (useFilters state) — used to reinitialize when panel opens */
+  currentFilters?: Record<string, any>;
 }
 
 export function FilterPanel({
@@ -57,14 +59,28 @@ export function FilterPanel({
   isLoading = false,
   position = 'right',
   mobilePosition = 'auto',
+  currentFilters,
 }: FilterPanelProps) {
   const [values, setValues] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
     fields.forEach((field) => {
-      initial[field.id] = field.defaultValue ?? '';
+      initial[field.id] = currentFilters?.[field.id] ?? field.defaultValue ?? '';
     });
     return initial;
   });
+
+  // Reinitialize internal state when panel opens (in case parent filters changed)
+  useEffect(() => {
+    if (isOpen) {
+      setValues((prev) => {
+        const next: Record<string, any> = {};
+        fields.forEach((field) => {
+          next[field.id] = currentFilters?.[field.id] ?? field.defaultValue ?? '';
+        });
+        return next;
+      });
+    }
+  }, [isOpen, fields, currentFilters]);
 
   const hasActiveFilters = useMemo(
     () => Object.values(values).some((val) => val !== '' && val !== false),
