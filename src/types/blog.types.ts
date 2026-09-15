@@ -178,6 +178,7 @@ export interface BlogPostListItem {
   published_at: string | null;
   read_time: number;
   view_count: number;
+  like_count?: number;
   categories?: BlogCategory[];
   tags?: BlogTag[];
   author?: BlogAuthor | null;
@@ -375,6 +376,23 @@ export interface BlogDashboardOverview {
     archived?: number;
     featured?: number;
   };
+  counts?: {
+    total_posts?: number;
+    published?: number;
+    drafts?: number;
+    scheduled?: number;
+    archived?: number;
+    featured?: number;
+    total_views?: number;
+    total_comments?: number;
+    total_ratings?: number;
+    total_likes?: number;
+    avg_rating?: number;
+    categories?: number;
+    tags?: number;
+    subscribers?: number;
+    newsletters_sent?: number;
+  };
   categories?: number;
   tags?: number;
   newsletter_subscribers?: number;
@@ -385,6 +403,7 @@ export interface BlogDashboardOverview {
     drafts?: number;
   };
   recent_posts?: BlogPostListItem[];
+  popular_posts?: BlogPostListItem[];
   recent_campaigns?: unknown[];
   total_views?: number;
 }

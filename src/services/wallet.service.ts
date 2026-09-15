@@ -20,7 +20,6 @@ class WalletService {
     return apiClient.get(`/wallet/transactions?page=${page}&per_page=${per_page}`);
   }
 }
-
 class PaymentService {
   async initializePayment(data: InitializePaymentRequest): Promise<ApiResponse<any>> {
     return apiClient.post('/payments/initialize', data);

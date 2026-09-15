@@ -12,6 +12,9 @@ import {
   FilePlus2,
   Clock,
   TrendingUp,
+  MessageSquare,
+  Star,
+  Heart,
 } from 'lucide-react';
 import { blogService } from '@/services/blog.service';
 import type { BlogDashboardOverview } from '@/types/blog.types';
@@ -82,19 +85,22 @@ export default function BlogOverviewPage() {
     );
   }
 
-  const posts = data?.posts || {};
+  const counts = (data?.counts ?? {}) as Record<string, number>;
+  const postLegacy = (data?.posts ?? {}) as Record<string, number>;
+  const posts = { ...postLegacy, ...counts };
 
   const statCards = [
-    { label: 'Total Posts', value: safeValue(posts.total), icon: <Newspaper className="h-5 w-5" /> },
+    { label: 'Total Posts', value: safeValue(posts.total_posts ?? posts.total), icon: <Newspaper className="h-5 w-5" /> },
     { label: 'Published', value: safeValue(posts.published), icon: <TrendingUp className="h-5 w-5" /> },
     { label: 'Drafts', value: safeValue(posts.drafts), icon: <FilePlus2 className="h-5 w-5" /> },
-    { label: 'Scheduled', value: safeValue(posts.scheduled), icon: <Clock className="h-5 w-5" /> },
-    { label: 'Archived', value: safeValue(posts.archived), icon: <FolderTree className="h-5 w-5" /> },
-    { label: 'Featured', value: safeValue(posts.featured), icon: <BarChart3 className="h-5 w-5" /> },
-    { label: 'Total Views', value: safeValue(data?.total_views), icon: <Eye className="h-5 w-5" /> },
-    { label: 'Categories', value: safeValue(data?.categories), icon: <FolderTree className="h-5 w-5" /> },
-    { label: 'Tags', value: safeValue(data?.tags), icon: <Tags className="h-5 w-5" /> },
-    { label: 'Newsletter Subscribers', value: safeValue(data?.newsletter_subscribers), icon: <Mail className="h-5 w-5" /> },
+    { label: 'Total Views', value: safeValue(posts.total_views ?? data?.total_views), icon: <Eye className="h-5 w-5" /> },
+    { label: 'Comments', value: safeValue(posts.total_comments), icon: <MessageSquare className="h-5 w-5" /> },
+    { label: 'Ratings', value: safeValue(posts.total_ratings), icon: <Star className="h-5 w-5" /> },
+    { label: 'Avg Rating', value: posts.avg_rating ? String(posts.avg_rating) : '—', icon: <Star className="h-5 w-5 text-amber-500" /> },
+    { label: 'Likes', value: safeValue(posts.total_likes), icon: <Heart className="h-5 w-5" /> },
+    { label: 'Categories', value: safeValue(posts.categories), icon: <FolderTree className="h-5 w-5" /> },
+    { label: 'Tags', value: safeValue(posts.tags), icon: <Tags className="h-5 w-5" /> },
+    { label: 'Subscribers', value: safeValue(posts.subscribers), icon: <Mail className="h-5 w-5" /> },
   ];
 
   return (
@@ -116,7 +122,7 @@ export default function BlogOverviewPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {statCards.map((stat) => (
           <Card key={stat.label}>
             <CardBody className="space-y-2">
@@ -131,49 +137,85 @@ export default function BlogOverviewPage() {
       </div>
 
       {/* Recent posts */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Recent Posts</h2>
-            <Link href="/admin/blog/posts" className="text-sm font-bold text-[#d71927] hover:underline">
-              View all
-            </Link>
-          </div>
-        </CardHeader>
-        <CardBody className="p-0">
-          {!data?.recent_posts || data.recent_posts.length === 0 ? (
-            <div className="p-10 text-center text-sm text-gray-500">
-              No posts yet. Create your first article to get started.
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Recent Posts</h2>
+              <Link href="/admin/blog/posts" className="text-sm font-bold text-[#d71927] hover:underline">
+                View all
+              </Link>
             </div>
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {data.recent_posts.slice(0, 6).map((post) => (
-                <li key={post.id}>
-                  <Link
-                    href={`/admin/blog/posts/${post.id}/edit`}
-                    className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-gray-50"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-gray-900">{post.title}</p>
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        {post.published_at ? formatDate(post.published_at) : 'Not published'}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span className="flex items-center gap-1 text-xs text-gray-500">
-                        <Eye size={14} /> {post.view_count ?? 0}
-                      </span>
-                      <Badge variant={post.status === 'published' ? 'success' : post.status === 'scheduled' ? 'info' : post.status === 'archived' ? 'default' : 'warning'}>
-                        {post.status}
-                      </Badge>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardBody>
-      </Card>
+          </CardHeader>
+          <CardBody className="p-0">
+            {!data?.recent_posts || data.recent_posts.length === 0 ? (
+              <div className="p-10 text-center text-sm text-gray-500">
+                No posts yet. Create your first article to get started.
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {data.recent_posts.slice(0, 5).map((post) => (
+                  <li key={post.id}>
+                    <Link
+                      href={`/admin/blog/posts/${post.id}/edit`}
+                      className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-gray-50"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-gray-900">{post.title}</p>
+                        <p className="mt-0.5 text-xs text-gray-500">
+                          {post.published_at ? formatDate(post.published_at) : 'Not published'}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                          <Eye size={14} /> {post.view_count ?? 0}
+                        </span>
+                        <Badge variant={post.status === 'published' ? 'success' : post.status === 'scheduled' ? 'info' : post.status === 'archived' ? 'default' : 'warning'}>
+                          {post.status}
+                        </Badge>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-lg font-bold text-gray-900">Most Popular</h2>
+          </CardHeader>
+          <CardBody className="p-0">
+            {!data?.popular_posts || data.popular_posts.length === 0 ? (
+              <div className="p-10 text-center text-sm text-gray-500">
+                No published posts yet.
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {data.popular_posts.slice(0, 5).map((post, idx) => (
+                  <li key={post.id}>
+                    <Link
+                      href={`/admin/blog/posts/${post.id}/edit`}
+                      className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-gray-50"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-sm font-bold text-gray-400 w-5 shrink-0">#{idx + 1}</span>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-gray-900">{post.title}</p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {post.view_count?.toLocaleString() ?? 0} views
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

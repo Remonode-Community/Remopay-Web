@@ -11,6 +11,7 @@ import { TagPill } from '@/components/blog/TagPill';
 import { RelatedPosts } from '@/components/blog/RelatedPosts';
 import { NewsletterSubscribeForm } from '@/components/blog/NewsletterSubscribeForm';
 import { EngagementSidebar } from '@/components/blog/engagement/EngagementSidebar';
+import { ArticleLikeButton } from '@/components/blog/engagement/ArticleLikeButton';
 import { ShareButtons } from '@/components/blog/ShareButtons';
 import { formatDate } from '@/utils/format.utils';
 
@@ -253,7 +254,12 @@ export default async function BlogPostPage({ params }: PageProps) {
               </span>
             </div>
 
-            <div className="mt-5">
+            <div className="mt-5 flex items-center gap-3">
+              <ArticleLikeButton
+                slug={post.slug}
+                initialLiked={false}
+                initialCount={post.like_count ?? 0}
+              />
               <ShareButtons title={post.title} slug={post.slug} />
             </div>
           </div>

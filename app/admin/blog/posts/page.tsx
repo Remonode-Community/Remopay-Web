@@ -246,6 +246,7 @@ export default function BlogPostsPage() {
                   <th className="px-6 py-3 font-semibold">Title</th>
                   <th className="px-6 py-3 font-semibold">Status</th>
                   <th className="px-6 py-3 font-semibold">Views</th>
+                  <th className="px-6 py-3 font-semibold">Likes</th>
                   <th className="px-6 py-3 font-semibold">Published</th>
                   <th className="px-6 py-3 text-right font-semibold">Actions</th>
                 </tr>
@@ -277,6 +278,7 @@ export default function BlogPostsPage() {
                       <PostStatusBadge status={post.status} />
                     </td>
                     <td className="px-6 py-4 text-gray-600">{post.view_count ?? 0}</td>
+                    <td className="px-6 py-4 text-gray-600">{post.like_count ?? 0}</td>
                     <td className="px-6 py-4 text-gray-600">{post.published_at ? formatDate(post.published_at) : '—'}</td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-1">

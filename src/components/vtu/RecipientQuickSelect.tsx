@@ -82,15 +82,15 @@ export const RecipientQuickSelect: React.FC<RecipientQuickSelectProps> = ({
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 min-w-0">
       {/* Favorites */}
       {displayFavorites.length > 0 && (
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 mb-3">
             <Star className="h-4 w-4 text-amber-400 fill-current" />
             <h3 className="text-sm font-bold text-gray-900">Favorites</h3>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
             {displayFavorites.map((recipient) => (
               <RecipientChip
                 key={recipient.id}
@@ -105,12 +105,12 @@ export const RecipientQuickSelect: React.FC<RecipientQuickSelectProps> = ({
 
       {/* Recently Used */}
       {displayRecent.length > 0 && (
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 mb-3">
             <Clock className="h-4 w-4 text-gray-500" />
             <h3 className="text-sm font-bold text-gray-900">Recently Used</h3>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
             {displayRecent.map((recipient) => (
               <RecipientChip
                 key={recipient.id}
@@ -124,12 +124,12 @@ export const RecipientQuickSelect: React.FC<RecipientQuickSelectProps> = ({
 
       {/* Frequently Used */}
       {displayFrequent.length > 0 && (
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="h-4 w-4 text-gray-500" />
             <h3 className="text-sm font-bold text-gray-900">Frequently Used</h3>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
             {displayFrequent.map((recipient) => (
               <RecipientChip
                 key={recipient.id}

@@ -37,6 +37,10 @@ import type {
 import type {
   BlogCommentListData,
   BlogEngagementSummary,
+  BlogLikeStatusResponse,
+  BlogLikeToggleResponse,
+  BlogCommentReactStatusResponse,
+  BlogCommentReactResponse,
   CreateBlogCommentRequest,
   CreateBlogRatingRequest,
 } from '@/types/blog-engagement.types';
@@ -494,6 +498,79 @@ class BlogService {
     );
   }
 
+  // ─── Public: Likes ────────────────────────────────────────────────
+
+  /**
+   * Toggle like on a blog post (authenticated or anonymous).
+   * POST /public/blog/posts/{slug}/like
+   */
+  async togglePostLike(
+    slug: string,
+    guestToken?: string | null
+  ): Promise<ApiResponse<BlogLikeToggleResponse>> {
+    return apiClient.post<BlogLikeToggleResponse>(
+      `${PUBLIC_BLOG}/posts/${encodeURIComponent(slug)}/like`,
+      { guest_token: guestToken }
+    );
+  }
+
+  /**
+   * Check if the current user/guest has liked the post.
+   * GET /public/blog/posts/{slug}/like/status
+   */
+  async getPostLikeStatus(
+    slug: string,
+    guestToken?: string | null
+  ): Promise<ApiResponse<BlogLikeStatusResponse>> {
+    const qs = guestToken ? `?guest_token=${encodeURIComponent(guestToken)}` : '';
+    return apiClient.get<BlogLikeStatusResponse>(
+      `${PUBLIC_BLOG}/posts/${encodeURIComponent(slug)}/like/status${qs}`
+    );
+  }
+
+  /**
+   * Toggle like/dislike on a comment.
+   * POST /public/blog/comments/{commentId}/react
+   */
+  async toggleCommentReact(
+    commentId: number,
+    reaction: 'like' | 'dislike',
+    guestToken?: string | null
+  ): Promise<ApiResponse<BlogCommentReactResponse>> {
+    return apiClient.post<BlogCommentReactResponse>(
+      `${PUBLIC_BLOG}/comments/${commentId}/react`,
+      { reaction, guest_token: guestToken }
+    );
+  }
+
+  /**
+   * Check the current user/guest reaction on a comment.
+   * GET /public/blog/comments/{commentId}/react/status
+   */
+  async getCommentReactStatus(
+    commentId: number,
+    guestToken?: string | null
+  ): Promise<ApiResponse<BlogCommentReactStatusResponse>> {
+    const qs = guestToken ? `?guest_token=${encodeURIComponent(guestToken)}` : '';
+    return apiClient.get<BlogCommentReactStatusResponse>(
+      `${PUBLIC_BLOG}/comments/${commentId}/react/status${qs}`
+    );
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────
+
+  /** Get or create a guest token for anonymous engagement tracking. */
+  getGuestToken(): string {
+    if (typeof window === 'undefined') return '';
+    const key = 'remopay_blog_guest_token';
+    let token = localStorage.getItem(key);
+    if (! token) {
+      token = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem(key, token);
+    }
+    return token;
+  }
+
   /**
    * Normalize the engagement summary response. The backend may return the
    * summary directly in `data`, OR wrapped as `{ engagement: {...} }` or
@@ -533,6 +610,8 @@ class BlogService {
             ? nested.rating_avg
             : 0,
       comment_count: typeof nested.comment_count === 'number' ? nested.comment_count : 0,
+      like_count: typeof nested.like_count === 'number' ? nested.like_count : 0,
+      liked: typeof nested.liked === 'boolean' ? nested.liked : false,
       rating_distribution:
         (nested.rating_distribution as Record<string | number, number> | undefined) ?? {},
       user_rating:
