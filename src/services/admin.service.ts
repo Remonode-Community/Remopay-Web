@@ -535,12 +535,12 @@ class AdminService {
     return apiClient.get('/admin/settings');
   }
 
-  async updateSystemSettings(data: { virtual_accounts_enabled: boolean }): Promise<any> {
+  async updateSystemSettings(data: { paystack_dva_enabled?: boolean; maplerad_virtual_accounts_enabled?: boolean }): Promise<any> {
     return apiClient.put('/admin/settings', data);
   }
 
-  async toggleVirtualAccounts(): Promise<any> {
-    return apiClient.post('/admin/settings/toggle-virtual-accounts');
+  async toggleProvider(provider: string): Promise<any> {
+    return apiClient.post(`/admin/settings/toggle/${provider}`);
   }
 }
 
