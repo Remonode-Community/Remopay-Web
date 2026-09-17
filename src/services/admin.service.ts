@@ -522,6 +522,26 @@ class AdminService {
       throw error;
     }
   }
+  async toggleUserVirtualAccounts(userId: string): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/toggle-virtual-accounts`);
+  }
+
+  async setUserVirtualAccounts(userId: string, visible: boolean): Promise<any> {
+    return apiClient.put(`/admin/users/${userId}/virtual-accounts`, { visible });
+  }
+
+  // SYSTEM SETTINGS
+  async getSystemSettings(): Promise<any> {
+    return apiClient.get('/admin/settings');
+  }
+
+  async updateSystemSettings(data: { virtual_accounts_enabled: boolean }): Promise<any> {
+    return apiClient.put('/admin/settings', data);
+  }
+
+  async toggleVirtualAccounts(): Promise<any> {
+    return apiClient.post('/admin/settings/toggle-virtual-accounts');
+  }
 }
 
 class AgentService {

@@ -327,6 +327,13 @@ export default function AdminUserDetailPage() {
     });
   };
 
+  const handleToggleVirtualAccounts = () => {
+    handleAction('Toggle VA Visibility', async () => {
+      await adminService.toggleUserVirtualAccounts(userId);
+      fetchUser();
+    });
+  };
+
   const handleCreateVirtualAccount = async () => {
     try {
       setCreatingVA(true);
@@ -908,11 +915,29 @@ export default function AdminUserDetailPage() {
                 />
 
                 <div className="border-t border-gray-100 pt-2">
-                  <ActionButton
-                    label="Edit Profile"
-                    icon={Pencil}
-                    onClick={() => router.push(`/admin/users?edit=${userId}`)}
-                  />
+                  <div className="flex items-center justify-between rounded-xl px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      {user.virtual_accounts_visible !== false ? (
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-gray-500" />
+                      )}
+                      <span className="text-sm font-medium text-gray-700">Virtual Accounts Visible</span>
+                    </div>
+                    <button
+                      onClick={handleToggleVirtualAccounts}
+                      disabled={loadingAction === 'Toggle VA Visibility'}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        user.virtual_accounts_visible !== false ? 'bg-[#d71927]' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          user.virtual_accounts_visible !== false ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             </SectionCard>

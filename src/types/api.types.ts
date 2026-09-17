@@ -571,6 +571,7 @@ export interface AdminUser extends User {
   paystack_account_name?: string;
   paystack_bank_name?: string;
   paystack_account_active?: boolean;
+  virtual_accounts_visible?: boolean;
   statistics?: {
     total_transactions: number;
     successful_transactions: number;
