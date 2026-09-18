@@ -530,6 +530,14 @@ class AdminService {
     return apiClient.put(`/admin/users/${userId}/virtual-accounts`, { visible });
   }
 
+  async toggleUserProvider(userId: string, provider: string): Promise<any> {
+    return apiClient.post(`/admin/users/${userId}/toggle-provider/${provider}`);
+  }
+
+  async setUserProvider(userId: string, provider: string, visible: boolean): Promise<any> {
+    return apiClient.put(`/admin/users/${userId}/provider/${provider}`, { visible });
+  }
+
   // SYSTEM SETTINGS
   async getSystemSettings(): Promise<any> {
     return apiClient.get('/admin/settings');

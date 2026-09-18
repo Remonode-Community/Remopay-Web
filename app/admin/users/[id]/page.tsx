@@ -334,6 +334,13 @@ export default function AdminUserDetailPage() {
     });
   };
 
+  const handleToggleUserProvider = (provider: string) => {
+    handleAction('Toggle Provider', async () => {
+      await adminService.toggleUserProvider(userId, provider);
+      fetchUser();
+    });
+  };
+
   const handleCreateVirtualAccount = async () => {
     try {
       setCreatingVA(true);
@@ -915,25 +922,53 @@ export default function AdminUserDetailPage() {
                 />
 
                 <div className="border-t border-gray-100 pt-2">
+                  <p className="mb-2 text-xs font-semibold uppercase text-gray-400">Virtual Account Visibility</p>
+                  
+                  {/* Paystack DVA toggle */}
                   <div className="flex items-center justify-between rounded-xl px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      {user.virtual_accounts_visible !== false ? (
+                      {user.paystack_dva_visible !== false ? (
                         <Eye className="h-4 w-4 text-gray-500" />
                       ) : (
                         <EyeOff className="h-4 w-4 text-gray-500" />
                       )}
-                      <span className="text-sm font-medium text-gray-700">Virtual Accounts Visible</span>
+                      <span className="text-sm font-medium text-gray-700">Paystack DVA</span>
                     </div>
                     <button
-                      onClick={handleToggleVirtualAccounts}
-                      disabled={loadingAction === 'Toggle VA Visibility'}
+                      onClick={() => handleToggleUserProvider('paystack')}
+                      disabled={loadingAction === 'Toggle Provider'}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        user.virtual_accounts_visible !== false ? 'bg-[#d71927]' : 'bg-gray-300'
+                        user.paystack_dva_visible !== false ? 'bg-[#d71927]' : 'bg-gray-300'
                       }`}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          user.virtual_accounts_visible !== false ? 'translate-x-6' : 'translate-x-1'
+                          user.paystack_dva_visible !== false ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Maplerad VA toggle */}
+                  <div className="flex items-center justify-between rounded-xl px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      {user.maplerad_va_visible !== false ? (
+                        <Eye className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-gray-500" />
+                      )}
+                      <span className="text-sm font-medium text-gray-700">Maplerad VA</span>
+                    </div>
+                    <button
+                      onClick={() => handleToggleUserProvider('maplerad')}
+                      disabled={loadingAction === 'Toggle Provider'}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        user.maplerad_va_visible !== false ? 'bg-[#d71927]' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          user.maplerad_va_visible !== false ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
                     </button>

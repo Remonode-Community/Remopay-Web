@@ -572,6 +572,8 @@ export interface AdminUser extends User {
   paystack_bank_name?: string;
   paystack_account_active?: boolean;
   virtual_accounts_visible?: boolean;
+  paystack_dva_visible?: boolean;
+  maplerad_va_visible?: boolean;
   statistics?: {
     total_transactions: number;
     successful_transactions: number;
