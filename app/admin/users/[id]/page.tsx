@@ -278,8 +278,9 @@ export default function AdminUserDetailPage() {
     const fetchSystemSettings = async () => {
       try {
         const response = await adminService.getSystemSettings();
-        if (response.data?.data) {
-          setSystemSettings(response.data.data);
+        const data = response?.data;
+        if (data) {
+          setSystemSettings(data);
         }
       } catch {
         // silent

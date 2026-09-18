@@ -37,8 +37,9 @@ export default function SystemSettingsPage() {
     try {
       setLoading(true);
       const response = await adminService.getSystemSettings();
-      if (response.data?.data) {
-        setSettings(response.data.data);
+      const data = response?.data;
+      if (data) {
+        setSettings(data);
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -55,8 +56,9 @@ export default function SystemSettingsPage() {
     try {
       setUpdating(provider);
       const response = await adminService.toggleProvider(provider);
-      if (response.data?.data) {
-        setSettings(response.data.data);
+      const data = response?.data;
+      if (data) {
+        setSettings(data);
       }
     } catch (error) {
       console.error('Failed to toggle:', error);
@@ -98,7 +100,7 @@ export default function SystemSettingsPage() {
         ) : (
           <div className="space-y-3">
             {providers.map((provider) => {
-              const isEnabled = settings[provider.settingKey] ?? true;
+              const isEnabled = !!settings[provider.settingKey];
               const isUpdating = updating === provider.key;
 
               return (
