@@ -13,6 +13,7 @@ import { NewsletterSubscribeForm } from '@/components/blog/NewsletterSubscribeFo
 import { EngagementSidebar } from '@/components/blog/engagement/EngagementSidebar';
 import { ArticleLikeButton } from '@/components/blog/engagement/ArticleLikeButton';
 import { ShareButtons } from '@/components/blog/ShareButtons';
+import BlogReader from '@/components/blog/BlogReader';
 import { formatDate } from '@/utils/format.utils';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://remopay.remonode.com';
@@ -287,6 +288,11 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
             {/* Left column: article content */}
             <div className="min-w-0 max-w-3xl">
+              <BlogReader
+                title={post.title}
+                contentHtml={post.content_html ?? undefined}
+                content={Array.isArray(post.content) ? post.content : undefined}
+              />
               {post.content_html ? (
                 /* Strategy A (recommended): inject backend-sanitized HTML.
                    The backend wraps it in <div class="blog-content"> and the
