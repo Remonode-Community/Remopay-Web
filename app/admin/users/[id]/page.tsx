@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ArrowLeft,
   User,
@@ -27,6 +28,7 @@ import {
   KeyRound,
   Loader2,
   RefreshCw,
+  Settings,
 } from 'lucide-react';
 
 import { Button } from '@/components/shared/Button';
@@ -198,6 +200,9 @@ export default function AdminUserDetailPage() {
   const [txLoading, setTxLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Global system settings
+  const [systemSettings, setSystemSettings] = useState<Record<string, boolean>>({});
+
   // Action states
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [creatingVA, setCreatingVA] = useState(false);
@@ -268,6 +273,20 @@ export default function AdminUserDetailPage() {
     fetchUser();
     fetchTransactions();
   }, [fetchUser, fetchTransactions]);
+
+  useEffect(() => {
+    const fetchSystemSettings = async () => {
+      try {
+        const response = await adminService.getSystemSettings();
+        if (response.data?.data) {
+          setSystemSettings(response.data.data);
+        }
+      } catch {
+        // silent
+      }
+    };
+    fetchSystemSettings();
+  }, []);
 
   // ── Action Handlers ─────────────────────────────────────────────────────
 
@@ -927,23 +946,29 @@ export default function AdminUserDetailPage() {
                   {/* Paystack DVA toggle */}
                   <div className="flex items-center justify-between rounded-xl px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      {user.paystack_dva_visible !== false ? (
+                      {user.paystack_dva_visible !== false && systemSettings.paystack_dva_enabled !== false ? (
                         <Eye className="h-4 w-4 text-gray-500" />
                       ) : (
                         <EyeOff className="h-4 w-4 text-gray-500" />
                       )}
-                      <span className="text-sm font-medium text-gray-700">Paystack DVA</span>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Paystack DVA</span>
+                        {systemSettings.paystack_dva_enabled === false && (
+                          <p className="text-[10px] text-amber-600">Globally disabled in System Settings</p>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleToggleUserProvider('paystack')}
-                      disabled={loadingAction === 'Toggle Provider'}
+                      disabled={loadingAction === 'Toggle Provider' || systemSettings.paystack_dva_enabled === false}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        user.paystack_dva_visible !== false ? 'bg-[#d71927]' : 'bg-gray-300'
-                      }`}
+                        user.paystack_dva_visible !== false && systemSettings.paystack_dva_enabled !== false ? 'bg-[#d71927]' : 'bg-gray-300'
+                      } ${systemSettings.paystack_dva_enabled === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      title={systemSettings.paystack_dva_enabled === false ? 'Globally disabled in System Settings' : ''}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          user.paystack_dva_visible !== false ? 'translate-x-6' : 'translate-x-1'
+                          user.paystack_dva_visible !== false && systemSettings.paystack_dva_enabled !== false ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
                     </button>
@@ -952,27 +977,38 @@ export default function AdminUserDetailPage() {
                   {/* Maplerad VA toggle */}
                   <div className="flex items-center justify-between rounded-xl px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      {user.maplerad_va_visible !== false ? (
+                      {user.maplerad_va_visible !== false && systemSettings.maplerad_virtual_accounts_enabled !== false ? (
                         <Eye className="h-4 w-4 text-gray-500" />
                       ) : (
                         <EyeOff className="h-4 w-4 text-gray-500" />
                       )}
-                      <span className="text-sm font-medium text-gray-700">Maplerad VA</span>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Maplerad VA</span>
+                        {systemSettings.maplerad_virtual_accounts_enabled === false && (
+                          <p className="text-[10px] text-amber-600">Globally disabled in System Settings</p>
+                        )}
+                      </div>
                     </div>
                     <button
                       onClick={() => handleToggleUserProvider('maplerad')}
-                      disabled={loadingAction === 'Toggle Provider'}
+                      disabled={loadingAction === 'Toggle Provider' || systemSettings.maplerad_virtual_accounts_enabled === false}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        user.maplerad_va_visible !== false ? 'bg-[#d71927]' : 'bg-gray-300'
-                      }`}
+                        user.maplerad_va_visible !== false && systemSettings.maplerad_virtual_accounts_enabled !== false ? 'bg-[#d71927]' : 'bg-gray-300'
+                      } ${systemSettings.maplerad_virtual_accounts_enabled === false ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      title={systemSettings.maplerad_virtual_accounts_enabled === false ? 'Globally disabled in System Settings' : ''}
                     >
                       <span
                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          user.maplerad_va_visible !== false ? 'translate-x-6' : 'translate-x-1'
+                          user.maplerad_va_visible !== false && systemSettings.maplerad_virtual_accounts_enabled !== false ? 'translate-x-6' : 'translate-x-1'
                         }`}
                       />
                     </button>
                   </div>
+
+                  <Link href="/admin/settings/system" className="mt-2 flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors">
+                    <Settings className="h-3 w-3" />
+                    Global System Settings
+                  </Link>
                 </div>
               </div>
             </SectionCard>

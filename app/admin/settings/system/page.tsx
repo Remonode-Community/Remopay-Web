@@ -77,10 +77,17 @@ export default function SystemSettingsPage() {
         </div>
       </div>
 
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        These are <strong>global switches</strong>. When a provider is disabled here, it is hidden from all users regardless of their individual settings. Per-user overrides are available on each user&apos;s detail page.
+      </div>
+
       <Card className="p-6">
         <h2 className="mb-1 text-lg font-semibold">Virtual Account Providers</h2>
         <p className="mb-4 text-sm text-gray-500">
-          Toggle each provider independently. When disabled, users will not see that provider&apos;s virtual account information.
+          Toggle each provider independently. When disabled globally, users will not see that provider&apos;s virtual account information regardless of their individual settings.
+        </p>
+        <p className="mb-4 text-xs text-gray-400">
+          Per-user overrides can be configured on individual user pages.
         </p>
 
         {loading ? (
