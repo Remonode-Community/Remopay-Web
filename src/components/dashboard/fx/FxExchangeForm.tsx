@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArrowRightLeft, AlertCircle, CheckCircle2, Clock, DollarSign } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ArrowRightLeft, AlertCircle, CheckCircle2, Clock, Loader2, Wallet } from 'lucide-react';
 import { useFx } from '@/hooks/useFx';
 import { useUIStore } from '@/store/ui.store';
 import type { Currency } from '@/types/fx.types';
+import { CurrencySelector } from './CurrencySelector';
+import { fxService } from '@/services/fx.service';
+import type { GenerateFxQuoteRequest } from '@/types/fx.types';
 
 export function FxExchangeForm() {
   const { generateQuote, quote, quoteLoading, quoteError, quoteExpiresIn, clearQuote, executeExchange, exchangeLoading, exchangeError, transaction, clearTransaction } = useFx();
@@ -15,10 +18,51 @@ export function FxExchangeForm() {
   const [targetCurrency, setTargetCurrency] = useState<Currency>('USD');
   const [amount, setAmount] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [supportedCurrencies, setSupportedCurrencies] = useState<Record<string, boolean>>({});
+  const [balances, setBalances] = useState({ ngn: 0, usd: 0 });
+  const [balanceLoading, setBalanceLoading] = useState(true);
+  const [validatingBalance, setValidatingBalance] = useState(false);
+
+  // Fetch supported currencies from admin settings
+  const fetchSupportedCurrencies = useCallback(async () => {
+    try {
+      const response = await fxService.getSupportedCurrencies?.();
+      if (response?.success && response.data?.supported_currencies) {
+        setSupportedCurrencies(response.data.supported_currencies);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch supported currencies, using defaults');
+      setSupportedCurrencies({ NGN: true, USD: true, USDT: true, USDC: true });
+    }
+  }, []);
+
+  // Fetch wallet balances
+  const fetchBalances = useCallback(async () => {
+    try {
+      setBalanceLoading(true);
+      // Try to get balances from the FX endpoint or wallet endpoint
+      const response = await fxService.getWalletBalances?.();
+      if (response?.success && response.data) {
+        setBalances({
+          ngn: response.data.ngn_balance || 0,
+          usd: response.data.usd_balance || 0,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to fetch wallet balances');
+    } finally {
+      setBalanceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSupportedCurrencies();
+    fetchBalances();
+  }, [fetchSupportedCurrencies, fetchBalances]);
 
   // Format number for display
   const formatCurrency = (value: number, currency: Currency): string => {
-    const divisor = currency === 'USD' ? 100 : 100;
+    const divisor = currency === 'USD' || currency === 'USDT' || currency === 'USDC' ? 100 : 100;
     const displayValue = value / divisor;
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 2,
@@ -29,8 +73,30 @@ export function FxExchangeForm() {
   // Parse input amount to lowest denomination
   const parseAmount = (input: string): number => {
     const parsed = parseFloat(input) || 0;
-    const multiplier = sourceCurrency === 'USD' ? 100 : 100;
+    const multiplier = sourceCurrency === 'USD' || sourceCurrency === 'USDT' || sourceCurrency === 'USDC' ? 100 : 100;
     return Math.round(parsed * multiplier);
+  };
+
+  // Get source wallet balance
+  const getSourceBalance = () => {
+    if (sourceCurrency === 'NGN') return balances.ngn;
+    return balances.usd;
+  };
+
+  // Validate wallet balance before generating quote
+  const validateBalance = (amountInDenomination: number): boolean => {
+    const sourceBalance = getSourceBalance();
+    if (sourceBalance < amountInDenomination) {
+      const currencyLabel = sourceCurrency === 'NGN' ? 'NGN' : 'USD';
+      const available = formatCurrency(sourceBalance, sourceCurrency);
+      const required = formatCurrency(amountInDenomination, sourceCurrency);
+      addToast({
+        type: 'error',
+        message: `Insufficient ${currencyLabel} balance. Available: ${available}, Required: ${required}`,
+      });
+      return false;
+    }
+    return true;
   };
 
   // Handle currency swap
@@ -39,20 +105,36 @@ export function FxExchangeForm() {
     setSourceCurrency(targetCurrency);
     setTargetCurrency(temp);
     clearQuote();
+    setAmount('');
   };
 
-  // Handle generate quote
+  // Handle generate quote with balance validation
   const handleGenerateQuote = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      addToast({
-        type: 'error',
-        message: 'Please enter a valid amount',
-      });
+      addToast({ type: 'error', message: 'Please enter a valid amount' });
       return;
     }
 
     const amountInDenomination = parseAmount(amount);
-    await generateQuote(sourceCurrency, targetCurrency, amountInDenomination);
+
+    // Validate wallet balance BEFORE calling provider
+    if (!validateBalance(amountInDenomination)) {
+      return;
+    }
+
+    try {
+      setValidatingBalance(true);
+      
+      const response = await generateQuote(sourceCurrency, targetCurrency, amountInDenomination);
+      
+      if (response) {
+        addToast({ type: 'success', message: 'Quote generated successfully' });
+      }
+    } catch (error: any) {
+      addToast({ type: 'error', message: error?.message || 'Failed to generate quote' });
+    } finally {
+      setValidatingBalance(false);
+    }
   };
 
   // Handle execute exchange
@@ -62,6 +144,8 @@ export function FxExchangeForm() {
     if (transaction) {
       setShowConfirmation(false);
       setAmount('');
+      // Refresh balances after successful conversion
+      fetchBalances();
     }
   };
 
@@ -75,6 +159,10 @@ export function FxExchangeForm() {
     }
   }, [transaction, exchangeLoading, clearTransaction]);
 
+  const sourceBalance = getSourceBalance();
+  const formattedSourceBalance = formatCurrency(sourceBalance, sourceCurrency);
+  const sourceWalletLabel = sourceCurrency === 'NGN' ? 'NGN Wallet' : 'USD Wallet';
+
   return (
     <div className="space-y-6">
       {/* Form Card */}
@@ -84,19 +172,31 @@ export function FxExchangeForm() {
         {/* Source Currency */}
         <div className="space-y-4 mb-6">
           <label className="block text-sm font-semibold text-gray-900">From</label>
-          <div className="flex gap-3">
-            <select
-              value={sourceCurrency}
-              onChange={(e) => {
-                setSourceCurrency(e.target.value as Currency);
-                clearQuote();
-              }}
-              className="flex-shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 font-semibold focus:outline-none focus:border-[#d71927] focus:ring-1 focus:ring-[#d71927]"
-            >
-              <option value="NGN">NGN</option>
-              <option value="USD">USD</option>
-            </select>
+          
+          {/* Currency Selector */}
+          <CurrencySelector
+            label=""
+            value={sourceCurrency}
+            onChange={(currency) => {
+              setSourceCurrency(currency);
+              clearQuote();
+            }}
+            disabled={quoteLoading || validatingBalance}
+            excludedCurrency={targetCurrency}
+            enabledCurrencies={supportedCurrencies}
+          />
 
+          {/* Amount Input with Balance Display */}
+          <div className="relative">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-900">Amount ({sourceCurrency})</span>
+              {sourceBalance > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <Wallet className="h-3 w-3" />
+                  <span>Balance: {formattedSourceBalance} {sourceCurrency}</span>
+                </div>
+              )}
+            </div>
             <input
               type="number"
               value={amount}
@@ -104,8 +204,19 @@ export function FxExchangeForm() {
                 setAmount(e.target.value);
                 clearQuote();
               }}
-              placeholder="0.00"
-              className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#d71927] focus:ring-1 focus:ring-[#d71927]"
+              placeholder={sourceCurrency === 'NGN' ? '100,000' : '50.00'}
+              step={sourceCurrency === 'NGN' ? '100' : '0.01'}
+              min="0"
+              disabled={quoteLoading || validatingBalance}
+              className={`
+                w-full rounded-lg border bg-white px-4 py-3 text-gray-900 placeholder-gray-400
+                transition-colors
+                ${quoteLoading || validatingBalance
+                  ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                  : 'border-gray-200 focus:outline-none focus:border-[#d71927] focus:ring-1 focus:ring-[#d71927]'
+                }
+              `}
+              autoFocus
             />
           </div>
         </div>
@@ -114,7 +225,8 @@ export function FxExchangeForm() {
         <div className="flex justify-center mb-6">
           <button
             onClick={handleSwapCurrencies}
-            className="p-3 rounded-full border border-gray-200 bg-white text-[#d71927] hover:bg-gray-50 transition"
+            disabled={quoteLoading || validatingBalance}
+            className="p-3 rounded-full border border-gray-200 bg-white text-[#d71927] hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowRightLeft size={20} />
           </button>
@@ -123,26 +235,24 @@ export function FxExchangeForm() {
         {/* Target Currency */}
         <div className="space-y-4 mb-8">
           <label className="block text-sm font-semibold text-gray-900">To</label>
-          <div className="flex gap-3">
-            <select
-              value={targetCurrency}
-              onChange={(e) => {
-                setTargetCurrency(e.target.value as Currency);
-                clearQuote();
-              }}
-              className="flex-shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-3 text-gray-900 font-semibold focus:outline-none focus:border-[#d71927] focus:ring-1 focus:ring-[#d71927]"
-            >
-              <option value="NGN">NGN</option>
-              <option value="USD">USD</option>
-            </select>
+          <CurrencySelector
+            label=""
+            value={targetCurrency}
+            onChange={(currency) => {
+              setTargetCurrency(currency);
+              clearQuote();
+            }}
+            disabled={quoteLoading || validatingBalance}
+            excludedCurrency={sourceCurrency}
+            enabledCurrencies={supportedCurrencies}
+          />
 
-            <input
-              type="text"
-              value={quote ? formatCurrency(quote.converted_amount, targetCurrency) : '0.00'}
-              disabled
-              className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-gray-600"
-            />
-          </div>
+          <input
+            type="text"
+            value={quote ? formatCurrency(quote.converted_amount, targetCurrency) : '0.00'}
+            disabled
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-gray-600"
+          />
         </div>
 
         {/* Error Message */}
@@ -183,16 +293,18 @@ export function FxExchangeForm() {
           {!quote ? (
             <button
               onClick={handleGenerateQuote}
-              disabled={quoteLoading || !amount || parseFloat(amount) <= 0}
-              className="w-full rounded-lg bg-[#d71927] px-6 py-3 font-semibold text-white transition hover:bg-[#b91420] disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={quoteLoading || validatingBalance || !amount || parseFloat(amount) <= 0}
+              className="w-full rounded-lg bg-[#d71927] px-6 py-3 font-semibold text-white transition hover:bg-[#b91420] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
+              {validatingBalance && <Loader2 className="h-4 w-4 animate-spin" />}
               {quoteLoading ? 'Generating Quote...' : 'Get Quote'}
             </button>
           ) : (
             <>
               <button
                 onClick={() => setShowConfirmation(true)}
-                className="w-full rounded-lg bg-[#d71927] px-6 py-3 font-semibold text-white transition hover:bg-[#b91420]"
+                disabled={exchangeLoading}
+                className="w-full rounded-lg bg-[#d71927] px-6 py-3 font-semibold text-white transition hover:bg-[#b91420] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirm Exchange
               </button>
@@ -253,8 +365,9 @@ export function FxExchangeForm() {
               <button
                 onClick={handleExecuteExchange}
                 disabled={exchangeLoading}
-                className="flex-1 rounded-lg bg-[#d71927] px-4 py-3 font-semibold text-white transition hover:bg-[#b91420] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 rounded-lg bg-[#d71927] px-4 py-3 font-semibold text-white transition hover:bg-[#b91420] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
+                {exchangeLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {exchangeLoading ? 'Processing...' : 'Confirm'}
               </button>
             </div>

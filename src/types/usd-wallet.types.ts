@@ -7,7 +7,7 @@
 // CURRENCY & DENOMINATION HELPERS
 // ═══════════════════════════════════════════════════════════════════════
 
-export type WalletCurrency = 'NGN' | 'USD';
+export type WalletCurrency = 'NGN' | 'USD' | 'USDT' | 'USDC';
 
 /**
  * Convert a major unit amount to the lowest denomination (kobo/cents)

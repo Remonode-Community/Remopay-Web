@@ -50,7 +50,6 @@ const PAYMENT_OPERATIONS = [
   '/vtu/pay',
   '/vtu/service',
   '/transactions/data/purchase',
-  '/transactions/bills/pay',
   '/vtu/pay/confirm',
   '/transactions/data/purchase/confirm',
   

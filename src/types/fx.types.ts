@@ -4,7 +4,7 @@
  */
 
 // Currency types
-export type Currency = 'NGN' | 'USD';
+export type Currency = 'NGN' | 'USD' | 'USDT' | 'USDC';
 
 // Quote status
 export type QuoteStatus = 'ACTIVE' | 'EXPIRED';

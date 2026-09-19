@@ -96,7 +96,7 @@ class TransactionService {
   }
 
   async payBills(data: PayBillsRequest): Promise<ApiResponse<{ transaction: Transaction }>> {
-    return apiClient.post('/transactions/bills/pay', data);
+    return apiClient.post('/vtu/pay', data);
   }
 
   async getReceipt(

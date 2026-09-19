@@ -56,7 +56,7 @@ export const API_ENDPOINTS = {
     detail: (id: string) => `/transactions/${id}`,
     purchaseAirtime: '/vtu/pay',
     purchaseData: '/transactions/data/purchase',
-    payBills: '/transactions/bills/pay',
+    payBills: '/vtu/pay',
     receipt: (id: string) => `/transactions/${id}/receipt`,
   },
   wallet: {

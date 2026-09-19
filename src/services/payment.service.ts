@@ -305,7 +305,7 @@ class PaymentService {
         ...(payload.pin && { pin: payload.pin }),
       };
 
-      const response = await apiClient.post('/transactions/bills/pay', billPayload);
+      const response = await apiClient.post('/vtu/pay', billPayload);
 
       debug.log('[PaymentService] Bill payment successful');
       return response;
@@ -338,7 +338,7 @@ class PaymentService {
     try {
       debug.log('[PaymentService] Confirming bill payment', { retryCount });
 
-      const response = await apiClient.post('/transactions/bills/pay/confirm', {
+      const response = await apiClient.post('/vtu/pay/confirm', {
         ...pinData,
       });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -33,6 +33,12 @@ interface ElectricityFormData {
   providerID: string;
   meterNumber: string;
   customerName: string;
+  customerAddress: string;
+  meterType: string;
+  serviceBand: string;
+  canVend: string;
+  minPurchaseAmount: string;
+  customerArrears: string;
   paymentType: string;
   variationCode: string;
 }
@@ -55,12 +61,6 @@ export default function BillsPage() {
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [verifyingMeter, setVerifyingMeter] = useState(false);
   const [lastVerifyTime, setLastVerifyTime] = useState(0);
-
-  const billersCode = useMemo(() => {
-    if (!selectedProvider) return '';
-    const provider = selectedProvider as any;
-    return provider.biller_code || provider.biller_id || provider.serviceID;
-  }, [selectedProvider]);
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -145,25 +145,36 @@ export default function BillsPage() {
     try {
       const response = await execute(
         vtuService.verifyMeterNumber(
-          billersCode,
           meterNumber.trim(),
-          'electricity-bill'
+          selectedProvider.serviceID
         )
       );
 
       if (response && response.code === '000' && response.content) {
-        const customerName =
-          response.content?.Customer_Name || 'Verified Customer';
+        const content = response.content;
+        const customerName = content.Customer_Name || 'Verified Customer';
+        const customerAddress = content.Address || '';
+        const meterType = content.Meter_Type || paymentType;
+        const serviceBand = content.Service_Band || '';
+        const canVend = content.Can_Vend || 'yes';
+        const minPurchaseAmount = content.Min_Purchase_Amount || '0.0';
+        const customerArrears = content.Customer_Arrears || '';
 
         const dataToStore: ElectricityFormData = {
-          serviceID: 'electricity-bill',
-          billersCode,
+          serviceID: selectedProvider.serviceID,
+          billersCode: meterNumber.trim(),
           provider: selectedProvider.name,
           providerID: selectedProvider.serviceID,
           meterNumber: meterNumber.trim(),
           customerName,
-          paymentType,
-          variationCode: paymentType.toLowerCase(),
+          customerAddress,
+          meterType,
+          serviceBand,
+          canVend,
+          minPurchaseAmount,
+          customerArrears,
+          paymentType: meterType,
+          variationCode: meterType.toLowerCase(),
         };
 
         sessionStorage.setItem(

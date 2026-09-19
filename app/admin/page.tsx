@@ -101,14 +101,6 @@ export default function AdminDashboardPage() {
           ? { start_date: startDate, end_date: endDate }
           : undefined;
 
-        console.log('🚀 [AdminDashboard] Fetching comprehensive dashboard data');
-        console.log('   Endpoint: /admin/dashboard/comprehensive');
-        console.log('   Period:', effectivePeriod);
-        console.log('   Has Custom Range:', hasCustomRange);
-        console.log('   Start Date:', startDate);
-        console.log('   End Date:', endDate);
-        console.log('   Filters:', effectiveFilters);
-
         // Validate custom range
         if (hasCustomRange) {
           const start = new Date(startDate);
@@ -120,27 +112,14 @@ export default function AdminDashboardPage() {
 
         const res = await adminService.getAdminDashboardComprehensive(effectivePeriod, effectiveFilters);
         
-        console.log('📊 [AdminDashboard] Response received:');
-        console.log('   Success:', res.success);
-        console.log('   Data:', res.data);
-        
         if (res.success && res.data) {
-          console.log('✅ [AdminDashboard] Dashboard data loaded successfully');
-          console.log('   Period:', res.data.period);
-          console.log('   Date Range:', res.data.start_date, '—', res.data.end_date);
-          console.log('   Users:', res.data.users);
-          console.log('   Performance:', res.data.performance);
-          console.log('   Wallet:', res.data.wallet);
-          console.log('   VTU Summary:', res.data.vtu.summary);
+          
           setData(res.data);
           setError(null);
         } else {
-          console.error('❌ [AdminDashboard] Invalid response - missing success or data');
           setError('Invalid response');
         }
       } catch (err: any) {
-        console.error('❌ [AdminDashboard] Error fetching dashboard:', err);
-        console.error('   Message:', err?.message);
         console.error('   Full Error:', err);
         setError(err?.message || 'Failed to load data');
       } finally {
@@ -160,34 +139,25 @@ export default function AdminDashboardPage() {
 
         // Paystack
         try {
-          console.log('🔄 [Paystack] Fetching balance from /payment/merchant-balance');
           const res = await paymentService.getPaystackBalance();
-          console.log('✅ [Paystack] Response:', res);
           const data = Array.isArray(res?.data) ? res.data[0] : null;
-          console.log('   Parsed data:', data);
           const b = data?.balance || 0;
           balances.paystack = (typeof b === 'string' ? parseFloat(b) : b) / 100;
-          console.log('   Final balance:', balances.paystack);
         } catch (err) {
           console.error('❌ [Paystack] Failed to fetch balance:', err);
         }
 
         // VTPass
         try {
-          console.log('🔄 [VTPass] Fetching balance from /vtu/balance');
           const res = await paymentService.getVTPassBalance();
-          console.log('✅ [VTPass] Response:', res);
           balances.vtpass = res.code === 1 ? parseFloat(res.contents?.balance || '0') : 0;
-          console.log('   Final balance:', balances.vtpass);
         } catch (err) {
           console.error('❌ [VTPass] Failed to fetch balance:', err);
         }
 
         // Maplerad — Aggregated wallets (Treasury NGN, Treasury USD, Spend USD)
         try {
-          console.log('🔄 [Maplerad Wallets] Fetching from /payment/wallets/balances');
           const res = await paymentService.getMapleradWalletBalances();
-          console.log('✅ [Maplerad Wallets] Response:', res);
           if (res.success && res.data) {
             setMapleradWallets(res.data);
           }
@@ -197,16 +167,12 @@ export default function AdminDashboardPage() {
 
         // Telnyx
         try {
-          console.log('🔄 [Telnyx] Fetching balance from /telnyx/merchant-balance');
           const res = await paymentService.getTelnyxBalance();
-          console.log('✅ [Telnyx] Response:', res);
           balances.telnyx = res.success ? parseFloat(res.data?.available_credit || '0') : 0;
-          console.log('   Final balance:', balances.telnyx);
         } catch (err) {
           console.error('❌ [Telnyx] Failed to fetch balance:', err);
         }
 
-        console.log('✅ [AdminDashboard] All provider balances fetched:', balances);
         setProviderBalances(balances);
       } catch (err) {
         console.error('❌ [AdminDashboard] Error in fetchBalances:', err);

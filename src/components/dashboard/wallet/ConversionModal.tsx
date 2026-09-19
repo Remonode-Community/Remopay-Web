@@ -84,6 +84,23 @@ export const ConversionModal: React.FC<ConversionModalProps> = ({
     setError(null);
     const amt = parseFloat(conversion.sourceAmount);
     if (isNaN(amt) || amt <= 0) { setError('Please enter a valid amount'); return; }
+    
+    // Validate wallet balance before generating quote
+    const sourceBalance = isNgnToUsd ? ngnBalance : usdBalance;
+    const amountInDenomination = isNgnToUsd ? Math.round(amt * 100) : Math.round(amt * 100);
+    
+    if (sourceBalance < amountInDenomination) {
+      const currencyLabel = isNgnToUsd ? 'NGN' : 'USD';
+      const available = isNgnToUsd 
+        ? `₦${(ngnBalance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+        : `$${(usdBalance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      const required = isNgnToUsd
+        ? `₦${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+        : `$${amt.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      setError(`Insufficient ${currencyLabel} balance. Available: ${available}, Required: ${required}`);
+      return;
+    }
+    
     await onGenerateQuote();
   };
 
@@ -109,24 +126,24 @@ export const ConversionModal: React.FC<ConversionModalProps> = ({
         disabled={quoteLoading}
         className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gray-50 px-4 py-3.5 hover:bg-gray-100 transition-colors disabled:opacity-50"
       >
-        <span className="flex items-center gap-2 text-sm font-bold text-gray-900">
-          <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-black text-white ${isNgnToUsd ? 'bg-[#d71927]' : 'bg-blue-600'}`}>
+<span className="flex items-center gap-2 text-sm font-bold text-gray-900">
+            <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-black text-white ${isNgnToUsd ? 'bg-[#d71927]' : 'bg-gray-800'}`}>
+              {src}
+            </span>
             {src}
           </span>
-          {src}
-        </span>
-        <ArrowRightLeft className="h-4 w-4 text-gray-400" />
-        <span className="flex items-center gap-2 text-sm font-bold text-gray-900">
-          <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-black text-white ${isNgnToUsd ? 'bg-blue-600' : 'bg-[#d71927]'}`}>
+          <ArrowRightLeft className="h-4 w-4 text-gray-400" />
+          <span className="flex items-center gap-2 text-sm font-bold text-gray-900">
+            <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-[11px] font-black text-white ${isNgnToUsd ? 'bg-gray-800' : 'bg-[#d71927]'}`}>
+              {tgt}
+            </span>
             {tgt}
           </span>
-          {tgt}
-        </span>
       </button>
 
       {/* Balance */}
-      <div className="rounded-2xl bg-blue-50 border border-blue-100 px-4 py-3">
-        <p className="text-xs font-semibold text-blue-700">
+      <div className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
+        <p className="text-xs font-semibold text-gray-700">
           {src} Balance: {srcBalFmt}
         </p>
       </div>

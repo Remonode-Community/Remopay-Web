@@ -16,6 +16,32 @@ import type {
 
 export const fxService = {
   /**
+   * Get supported currencies from public endpoint
+   */
+  async getSupportedCurrencies(): Promise<any> {
+    try {
+      const response = await apiClient.get<any>('/payment/fx/supported-currencies');
+      return response;
+    } catch (error: any) {
+      console.error('[FxService] Error fetching supported currencies:', error);
+      return { success: false, message: error?.message || 'Failed to fetch supported currencies' };
+    }
+  },
+
+  /**
+   * Get wallet balances for conversion validation
+   */
+  async getWalletBalances(): Promise<any> {
+    try {
+      const response = await apiClient.get<any>('/payment/fx/wallet-balances');
+      return response;
+    } catch (error: any) {
+      console.error('[FxService] Error fetching wallet balances:', error);
+      return { success: false, message: error?.message || 'Failed to fetch wallet balances' };
+    }
+  },
+
+  /**
    * Generate an FX quote with current exchange rate
    */
   async generateQuote(request: GenerateFxQuoteRequest): Promise<GenerateFxQuoteResponse> {

@@ -35,6 +35,12 @@ interface ElectricityFormData {
   providerID: string;
   meterNumber: string;
   customerName: string;
+  customerAddress: string;
+  meterType: string;
+  serviceBand: string;
+  canVend: string;
+  minPurchaseAmount: string;
+  customerArrears: string;
   paymentType: string;
   variationCode: string;
 }
@@ -95,7 +101,18 @@ export default function ElectricityReviewPage() {
   };
 
   const isValidPhone = (): boolean => {
-    return /^0[789]\d{9}$/.test(phone.replace(/\s/g, ''));
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 11 && /^0[789]\d{9}$/.test(digits)) return true;
+    if (digits.length === 13 && /^234[789]\d{9}$/.test(digits)) return true;
+    return false;
+  };
+
+  const normalizePhone = (value: string): string => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.startsWith('234') && digits.length >= 13) {
+      return '0' + digits.slice(3);
+    }
+    return digits;
   };
 
   const isValidEmail = (): boolean => {
@@ -103,16 +120,7 @@ export default function ElectricityReviewPage() {
   };
 
   const handlePhoneChange = (value: string) => {
-    let nextPhone = value.replace(/\D/g, '').slice(0, 11);
-
-    if (nextPhone.length > 7) {
-      nextPhone = `${nextPhone.slice(0, 3)} ${nextPhone.slice(
-        3,
-        7
-      )} ${nextPhone.slice(7)}`;
-    } else if (nextPhone.length > 3) {
-      nextPhone = `${nextPhone.slice(0, 3)} ${nextPhone.slice(3)}`;
-    }
+    let nextPhone = value.replace(/[^\d+\-\s()]/g, '').slice(0, 15);
 
     setPhone(nextPhone);
   };
@@ -158,7 +166,7 @@ export default function ElectricityReviewPage() {
 
       const paymentPayload = {
         serviceID: formData.serviceID,
-        phone: phone.replace(/\s/g, ''),
+        phone: normalizePhone(phone),
         amount: amountValue,
         billersCode: formData.billersCode,
         variation_code: formData.variationCode,
@@ -171,8 +179,9 @@ export default function ElectricityReviewPage() {
       const response = await paymentService.payBill(paymentPayload as any);
       console.log('[BillsReview] Transaction response:', response);
 
-      // API client returns the backend response directly (not wrapped in data property)
       const responseData = response as any;
+
+      // Handle success
       if (responseData?.success && (responseData?.status === 'success' || responseData?.status === 'completed')) {
         success('Electricity bill payment successful!');
         setTransactionStatus('success');
@@ -186,28 +195,36 @@ export default function ElectricityReviewPage() {
         return;
       }
 
-      const errorCode = responseData?.error_code;
+      // Handle failure (success: false with error message)
+      if (responseData?.success === false) {
+        const errorMsg = responseData?.error || responseData?.message || 'Payment failed';
 
-      if (errorCode === 'INSUFFICIENT_USER_BALANCE') {
-        const required = amountValue;
-        const current = responseData?.current_balance || 0;
-        const shortfall = required - current;
+        // Check for insufficient balance
+        if (
+          responseData?.error_code === 'INSUFFICIENT_USER_BALANCE' ||
+          /insufficient/i.test(errorMsg)
+        ) {
+          const required = amountValue;
+          const current = responseData?.current_balance || 0;
+          const shortfall = required - current;
 
-        setInsufficientBalance(true);
-        setBalanceInfo({
-          requiredAmount: required,
-          currentBalance: current,
-          shortfall: Math.max(0, shortfall),
-        });
+          setInsufficientBalance(true);
+          setBalanceInfo({
+            requiredAmount: required,
+            currentBalance: current,
+            shortfall: Math.max(0, shortfall),
+          });
+          setTransactionStatus('error');
+          setShowPINModal(false);
+          return;
+        }
+
         setTransactionStatus('error');
+        alertError(errorMsg);
+        setErrorMessage(errorMsg);
         setShowPINModal(false);
         return;
       }
-
-      setTransactionStatus('error');
-      alertError(responseData?.message || 'Payment failed');
-      setErrorMessage(responseData?.message || 'Please review your wallet balance or try again.');
-      setShowPINModal(false);
     } catch (error: any) {
       console.error('[BillsReview] Error:', error);
       setShowPINModal(false);
@@ -285,15 +302,15 @@ export default function ElectricityReviewPage() {
             <div className="border-b border-[#EEF2F7] bg-white px-6 py-5 sm:px-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d71927] bg-white text-sm font-extrabold text-[#d71927]">
-                    ✓
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-green-500 bg-white text-sm font-extrabold text-green-500">
+                    <CheckCircle2 size={18} />
                   </div>
                   <div>
                     <p className="text-sm font-bold text-[#111827]">
                       Meter Verified
                     </p>
                     <p className="text-xs text-[#667085]">
-                      Customer details confirmed.
+                      {formData.provider}
                     </p>
                   </div>
                 </div>
@@ -309,7 +326,7 @@ export default function ElectricityReviewPage() {
                       Confirm & Pay
                     </p>
                     <p className="text-xs text-[#667085]">
-                      Authorize bill payment.
+                      Enter amount and pay.
                     </p>
                   </div>
                 </div>
@@ -318,46 +335,11 @@ export default function ElectricityReviewPage() {
 
             <div className="p-6 sm:p-8">
               <h2 className="text-2xl font-extrabold tracking-tight text-[#111827]">
-                Verified Meter Details
+                Confirm & Pay
               </h2>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div className="rounded-2xl border border-[#EEF2F7] bg-white px-5 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
-                    Provider
-                  </p>
-                  <p className="mt-2 text-base font-extrabold text-[#111827]">
-                    {formData.provider}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-[#EEF2F7] bg-white px-5 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
-                    Meter Type
-                  </p>
-                  <p className="mt-2 text-base font-extrabold text-[#111827]">
-                    {formData.paymentType}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-[#EEF2F7] bg-white px-5 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
-                    Meter Number
-                  </p>
-                  <p className="mt-2 text-base font-extrabold text-[#111827]">
-                    {formData.meterNumber}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-[#EEF2F7] bg-white px-5 py-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#98A2B3]">
-                    Customer
-                  </p>
-                  <p className="mt-2 text-base font-extrabold text-[#111827]">
-                    {formData.customerName}
-                  </p>
-                </div>
-              </div>
+              <p className="mt-1 text-sm text-[#667085]">
+                Enter payment details to complete your electricity purchase.
+              </p>
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
                 <Input
@@ -400,7 +382,7 @@ export default function ElectricityReviewPage() {
                 />
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 rounded-[24px] border border-red-200 bg-red-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-5 flex flex-col gap-3 rounded-[24px] border border-[#EEF2F7] px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-[#111827]">
                     Total Amount
@@ -458,14 +440,14 @@ export default function ElectricityReviewPage() {
                       method.disabled
                         ? 'cursor-not-allowed border-gray-200 bg-[#F8FAFC] opacity-60'
                         : active
-                          ? 'border-[#d71927] bg-red-50 shadow-[0_14px_30px_rgba(215,25,39,0.12)]'
+                          ? 'border-[#d71927] bg-white'
                           : 'border-gray-200 bg-white hover:border-[#d71927]'
                     }`}
                   >
                     <div className="flex items-start gap-4">
                       <div
                         className={`rounded-2xl p-3 ${
-                          active ? 'bg-[#d71927]' : 'bg-red-50'
+                          active ? 'bg-[#d71927]' : 'bg-gray-100'
                         }`}
                       >
                         <Icon
@@ -483,7 +465,7 @@ export default function ElectricityReviewPage() {
                         </p>
 
                         {method.disabled && (
-                          <span className="mt-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-[#d71927]">
+                          <span className="mt-3 inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-[#667085]">
                             Coming soon
                           </span>
                         )}
@@ -523,13 +505,13 @@ export default function ElectricityReviewPage() {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-[#667085]">Meter Type</span>
                 <span className="font-bold text-[#111827]">
-                  {formData.paymentType}
+                  {formData.meterType}
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#667085]">Meter</span>
-                <span className="font-bold text-[#111827]">
+                <span className="text-[#667085]">Meter Number</span>
+                <span className="font-mono font-bold tracking-wide text-[#111827]">
                   {formData.meterNumber}
                 </span>
               </div>
@@ -540,9 +522,50 @@ export default function ElectricityReviewPage() {
                   {formData.customerName}
                 </span>
               </div>
+
+              {formData.customerAddress && (
+                <div className="flex items-start justify-between gap-4 text-sm">
+                  <span className="text-[#667085]">Address</span>
+                  <span className="max-w-[190px] text-right text-xs leading-5 text-[#111827]">
+                    {formData.customerAddress}
+                  </span>
+                </div>
+              )}
+
+              {formData.serviceBand && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#667085]">Service Band</span>
+                  <span className="text-right text-xs font-bold text-[#111827]">
+                    {formData.serviceBand}
+                  </span>
+                </div>
+              )}
+
+              {formData.customerArrears && formData.customerArrears !== '0.0' && formData.customerArrears !== '' && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#667085]">Arrears</span>
+                  <span className="font-bold text-amber-600">
+                    {formatCurrency(Number(formData.customerArrears))}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#667085]">Phone</span>
+                <span className="font-bold text-[#111827]">
+                  {phone ? normalizePhone(phone) : '—'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#667085]">Email</span>
+                <span className="max-w-[190px] text-right text-xs font-bold text-[#111827]">
+                  {email || '—'}
+                </span>
+              </div>
             </div>
 
-            <div className="my-6 flex items-center justify-between rounded-[24px] bg-red-50 px-5 py-4">
+            <div className="my-6 flex items-center justify-between rounded-[24px] border border-[#EEF2F7] px-5 py-4">
               <span className="text-base font-bold text-[#111827]">Total</span>
               <span className="text-2xl font-extrabold tracking-tight text-[#d71927]">
                 {formatCurrency(amountValue)}
@@ -550,7 +573,7 @@ export default function ElectricityReviewPage() {
             </div>
 
             {insufficientBalance && balanceInfo && (
-              <div className="mb-6 rounded-[24px] border border-red-200 bg-red-50 p-5">
+              <div className="mb-6 rounded-[24px] border border-red-200 bg-white p-5">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="mt-0.5 text-red-600" size={22} />
                   <div className="flex-1">
@@ -562,7 +585,7 @@ export default function ElectricityReviewPage() {
                       complete this payment.
                     </p>
 
-                    <div className="mt-3 space-y-2 rounded-2xl bg-red-100 p-3 text-xs text-red-800">
+                    <div className="mt-3 space-y-2 rounded-2xl border border-red-100 p-3 text-xs text-red-800">
                       <div className="flex justify-between">
                         <span>Current Balance</span>
                         <span>{formatCurrency(balanceInfo.currentBalance)}</span>

@@ -192,20 +192,17 @@ class VTUService {
 
   /**
    * Verify meter number for electricity bill payment
-   * @param billersCode - Electricity provider biller code
    * @param meterNumber - Customer's meter number
-   * @param serviceID - Electricity provider service ID
+   * @param serviceID - Electricity provider service ID (e.g., 'ikeja-electric')
    */
   async verifyMeterNumber(
-    billersCode: string,
     meterNumber: string,
     serviceID: string
   ): Promise<any> {
     try {
       const response = await apiClient.post('/vtu/merchant-verify', {
-        billersCode,
+        billersCode: meterNumber,
         serviceID: serviceID,
-        Meter_Number: meterNumber,
       });
 
       return response;

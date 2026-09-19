@@ -550,6 +550,15 @@ class AdminService {
   async toggleProvider(provider: string): Promise<any> {
     return apiClient.post(`/admin/settings/toggle/${provider}`);
   }
+
+  // SUPPORTED CURRENCIES
+  async getSupportedCurrencies(): Promise<any> {
+    return apiClient.get('/admin/settings/supported-currencies');
+  }
+
+  async updateSupportedCurrencies(currencies: Record<string, boolean>): Promise<any> {
+    return apiClient.put('/admin/settings/supported-currencies', { currencies });
+  }
 }
 
 class AgentService {
