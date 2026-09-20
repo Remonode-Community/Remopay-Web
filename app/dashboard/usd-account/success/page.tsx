@@ -17,7 +17,6 @@ export default function USDAccountSuccessPage() {
 
     return () => clearTimeout(timer);
   }, [router]);
-
   return (
     <div
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
