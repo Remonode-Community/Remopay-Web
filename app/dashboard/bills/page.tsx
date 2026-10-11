@@ -21,8 +21,10 @@ import { Toast } from '@/components/shared/Toast';
 import { CardSkeleton } from '@/components/shared/SkeletonLoader';
 import { useAlert } from '@/hooks/useAlert';
 import { useApi } from '@/hooks/useApi';
+import { useVtuRecipients } from '@/hooks/useVtuRecipients';
 import { vtuService } from '@/services/vtu.service';
 import { VTUProvider } from '@/types/vtu.types';
+import { VtuRecipient } from '@/types/api.types';
 
 type FormStep = 'provider' | 'payment-type' | 'meter';
 
@@ -61,6 +63,16 @@ export default function BillsPage() {
   const [loadingProviders, setLoadingProviders] = useState(true);
   const [verifyingMeter, setVerifyingMeter] = useState(false);
   const [lastVerifyTime, setLastVerifyTime] = useState(0);
+
+  const {
+    recentlyUsed: savedMeters,
+    fetchRecentlyUsed,
+    recordUsage,
+  } = useVtuRecipients();
+
+  useEffect(() => {
+    fetchRecentlyUsed(5, 'electricity');
+  }, [fetchRecentlyUsed]);
 
   useEffect(() => {
     const loadProviders = async () => {
@@ -118,15 +130,21 @@ export default function BillsPage() {
     }
   };
 
-  const handleVerifyMeter = async () => {
+  const handleVerifyMeter = async (
+    overrideNumber?: string,
+    overrideProvider?: VTUProvider | null
+  ) => {
     if (verifyingMeter) return;
 
-    if (!meterNumber.trim()) {
+    const numberToVerify = (overrideNumber ?? meterNumber).trim();
+    const providerToVerify = overrideProvider ?? selectedProvider;
+
+    if (!numberToVerify) {
       setMeterError('Please enter your meter number');
       return;
     }
 
-    if (!selectedProvider) {
+    if (!providerToVerify) {
       setMeterError('Please select a provider first');
       return;
     }
@@ -145,8 +163,8 @@ export default function BillsPage() {
     try {
       const response = await execute(
         vtuService.verifyMeterNumber(
-          meterNumber.trim(),
-          selectedProvider.serviceID
+          numberToVerify,
+          providerToVerify.serviceID
         )
       );
 
@@ -161,11 +179,11 @@ export default function BillsPage() {
         const customerArrears = content.Customer_Arrears || '';
 
         const dataToStore: ElectricityFormData = {
-          serviceID: selectedProvider.serviceID,
-          billersCode: meterNumber.trim(),
-          provider: selectedProvider.name,
-          providerID: selectedProvider.serviceID,
-          meterNumber: meterNumber.trim(),
+          serviceID: providerToVerify.serviceID,
+          billersCode: numberToVerify,
+          provider: providerToVerify.name,
+          providerID: providerToVerify.serviceID,
+          meterNumber: numberToVerify,
           customerName,
           customerAddress,
           meterType,
@@ -209,6 +227,40 @@ export default function BillsPage() {
     } finally {
       setVerifyingMeter(false);
     }
+  };
+
+  const handleSavedMeterSelect = async (recipient: VtuRecipient) => {
+    const matchedProvider = providers.find(
+      (p) => p.serviceID === recipient.service_identifier
+    );
+
+    if (!matchedProvider) {
+      alertError('The provider for this saved meter is no longer available');
+      return;
+    }
+
+    const savedType = String(recipient.metadata?.meterType || 'Prepaid');
+    const capitalized =
+      savedType.charAt(0).toUpperCase() + savedType.slice(1).toLowerCase();
+    const nextPaymentType: 'Prepaid' | 'Postpaid' =
+      capitalized === 'Postpaid' ? 'Postpaid' : 'Prepaid';
+
+    setSelectedProvider(matchedProvider);
+    setPaymentType(nextPaymentType);
+    setMeterNumber(recipient.credential);
+    setMeterError('');
+    setStep('meter');
+
+    // Record usage best-effort (mirrors mobile behaviour)
+    try {
+      await recordUsage(recipient.id);
+    } catch {
+      // non-blocking
+    }
+
+    // Verify immediately with explicit values (state updates are async,
+    // so rely on the overrides rather than freshly-set state)
+    handleVerifyMeter(recipient.credential, matchedProvider);
   };
 
   if (loadingProviders) {
@@ -267,6 +319,44 @@ export default function BillsPage() {
 
         <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_360px]">
           <div className="space-y-8">
+            {savedMeters.length > 0 &&
+              (step === 'provider' || step === 'meter') && (
+                <div>
+                  <label className="mb-4 block text-sm font-bold text-[#111827]">
+                    Saved Meters
+                  </label>
+
+                  <div className="flex flex-wrap gap-3">
+                    {savedMeters.map((meter) => (
+                      <button
+                        key={meter.id}
+                        type="button"
+                        onClick={() => handleSavedMeterSelect(meter)}
+                        disabled={verifyingMeter}
+                        className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-left transition-all hover:border-[#d71927] disabled:opacity-60"
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#FEF3F2]">
+                          <Bolt className="text-[#d71927]" size={18} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold text-[#111827]">
+                            {meter.recipient_name || 'Saved meter'}
+                          </span>
+                          <span className="block text-xs text-[#667085]">
+                            {meter.credential}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mt-3 text-xs text-[#667085]">
+                    Tap a saved meter to verify it automatically and continue
+                    straight to payment.
+                  </p>
+                </div>
+              )}
+
             {step === 'provider' && (
               <div>
                 <label className="mb-4 block text-sm font-bold text-[#111827]">
@@ -417,7 +507,7 @@ export default function BillsPage() {
               {step === 'meter' ? (
                 <Button
                   fullWidth
-                  onClick={handleVerifyMeter}
+                  onClick={() => handleVerifyMeter()}
                   disabled={verifyingMeter || !meterNumber.trim()}
                   className="h-13 rounded-2xl bg-[#d71927] text-base font-bold text-white shadow-[0_14px_30px_rgba(215,25,39,0.24)] hover:bg-[#b81420] disabled:cursor-not-allowed disabled:opacity-60"
                 >

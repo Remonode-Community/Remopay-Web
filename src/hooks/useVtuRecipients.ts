@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { vtuRecipientsService } from '@/services/vtu-recipients.service';
-import { toBackendTransactionType } from '@/utils/transaction-type.utils';
+import { toBackendTransactionType, toFrontendTransactionType } from '@/utils/transaction-type.utils';
 import {
   VtuRecipient,
   GetAllRecipientsRequest,
@@ -51,6 +51,27 @@ const initialState: UseVtuRecipientsState = {
   },
 };
 
+/**
+ * Client-side scope guard: ensures a recipient belongs to the requested
+ * service page even if the backend ignores the transaction_type filter.
+ * Normalizes both vocabularies ('airtime' vs 'Airtime Recharge') before comparing.
+ */
+const isInScope = (
+  recipient: { transaction_type?: string; service_identifier?: string },
+  transactionType?: string,
+  serviceIdentifier?: string
+): boolean => {
+  if (transactionType) {
+    const requested = toFrontendTransactionType(transactionType);
+    const actual = toFrontendTransactionType(recipient.transaction_type);
+    if (requested !== actual) return false;
+  }
+  if (serviceIdentifier && recipient.service_identifier !== serviceIdentifier) {
+    return false;
+  }
+  return true;
+};
+
 export const useVtuRecipients = () => {
   const { addToast } = useUIStore();
   const [state, setState] = useState<UseVtuRecipientsState>(initialState);
@@ -75,9 +96,12 @@ export const useVtuRecipients = () => {
         if (response.success && Array.isArray(response.data)) {
           const currentPage = response.pagination?.current_page || 1;
           const lastPage = response.pagination?.last_page || 1;
+          const scopedData = (response.data as VtuRecipient[]).filter((r) =>
+            isInScope(r, params.transaction_type, params.service_identifier)
+          );
           setState((prev) => ({
             ...prev,
-            recipients: response.data as VtuRecipient[],
+            recipients: scopedData,
             pagination: {
               total: response.pagination?.total || 0,
               currentPage,
@@ -125,9 +149,12 @@ export const useVtuRecipients = () => {
         );
 
         if (response.success && Array.isArray(response.data)) {
+          const scopedData = (response.data as VtuRecipient[]).filter((r) =>
+            isInScope(r, transactionType, serviceIdentifier)
+          );
           setState((prev) => ({
             ...prev,
-            recentlyUsed: response.data as VtuRecipient[],
+            recentlyUsed: scopedData,
             isLoading: false,
           }));
         } else {
@@ -165,9 +192,12 @@ export const useVtuRecipients = () => {
         );
 
         if (response.success && Array.isArray(response.data)) {
+          const scopedData = (response.data as VtuRecipient[]).filter((r) =>
+            isInScope(r, transactionType, serviceIdentifier)
+          );
           setState((prev) => ({
             ...prev,
-            frequentlyUsed: response.data as VtuRecipient[],
+            frequentlyUsed: scopedData,
             isLoading: false,
           }));
         } else {
