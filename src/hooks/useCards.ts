@@ -58,7 +58,7 @@ export const useCards = (options?: UseCardsOptions) => {
   const [createFormData, setCreateFormData] = useState<CreateCardFormData>({
     brand: CardBrand.VISA,
     autoApprove: true,
-    amount: '5',
+    amount: '0',
   });
 
   const [createFormErrors, setCreateFormErrors] = useState<Record<string, string>>({});
@@ -109,7 +109,7 @@ export const useCards = (options?: UseCardsOptions) => {
     setCreateFormData({
       brand: CardBrand.VISA,
       autoApprove: true,
-      amount: '5',
+      amount: '0',
     });
     setCreateFormErrors({});
   }, []);

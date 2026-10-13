@@ -2,6 +2,7 @@
 
 import React, { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCards } from '@/hooks/useCards';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
@@ -17,7 +18,11 @@ import {
   CreditCard,
   Shield,
   Globe,
-  Zap,
+  Wallet,
+  Calendar,
+  ArrowLeftRight,
+  AlertTriangle,
+  Timer,
   AlertCircle,
   DollarSign,
   RefreshCw,
@@ -84,34 +89,69 @@ export default function VirtualCardPage() {
 
   if (!user) return null;
 
-  const features = [
+  const steps = [
     {
-      icon: Zap,
-      title: 'Instant Creation',
-      desc: 'Generate virtual cards in seconds, ready to use immediately.',
-      color: 'text-red-600',
-      bg: 'bg-red-50',
-    },
-    {
+      step: 1,
       icon: Shield,
-      title: 'Enhanced Security',
-      desc: 'Protect your real card details with disposable virtual numbers.',
-      color: 'text-red-600',
-      bg: 'bg-red-50',
+      title: 'Verify Your Account',
+      desc: 'Complete KYC and upgrade to Tier 1 (Bronze) to unlock virtual card creation.',
     },
+    {
+      step: 2,
+      icon: Wallet,
+      title: 'Fund Your Wallet',
+      desc: 'Convert NGN to USD in the Wallet — your balance covers the one-time card issuance fee.',
+    },
+    {
+      step: 3,
+      icon: CreditCard,
+      title: 'Create Your Card',
+      desc: 'Pick VISA or Mastercard and generate your virtual USD card in seconds.',
+    },
+    {
+      step: 4,
+      icon: Globe,
+      title: 'Fund & Use It',
+      desc: 'Add funds from $1 and spend anywhere VISA/Mastercard is accepted worldwide.',
+    },
+  ];
+
+  const cardTerms = [
     {
       icon: Globe,
-      title: 'Global Spending',
-      desc: 'Use your USD virtual card anywhere VISA/Mastercard is accepted.',
-      color: 'text-red-600',
-      bg: 'bg-red-50',
+      label: 'Acceptance',
+      value: 'Visa & Mastercard',
+      desc: 'USD virtual cards that work on all platforms worldwide.',
     },
     {
-      icon: CreditCard,
-      title: 'Full Control',
-      desc: 'Manage funds, freeze, and monitor transactions in real-time.',
-      color: 'text-red-600',
-      bg: 'bg-red-50',
+      icon: Calendar,
+      label: 'Validity Period',
+      value: '3 Years',
+      desc: 'Each card is valid for 3 years from the date of issuance.',
+    },
+    {
+      icon: ArrowLeftRight,
+      label: 'Per Transaction Limit',
+      value: '$10,000',
+      desc: 'Maximum amount allowed on a single transaction.',
+    },
+    {
+      icon: Wallet,
+      label: 'Card Balance Limit',
+      value: '$100,000',
+      desc: 'Maximum balance a card can hold at any time.',
+    },
+    {
+      icon: AlertTriangle,
+      label: 'Successive Declines',
+      value: '3 Strikes',
+      desc: 'Cards are terminated after 3 successive declines.',
+    },
+    {
+      icon: Timer,
+      label: 'Funding Window',
+      value: '3 Weeks',
+      desc: 'Cards are terminated if not funded within 3 weeks.',
     },
   ];
 
@@ -187,9 +227,12 @@ export default function VirtualCardPage() {
             </div>
             <p className="text-xs text-gray-500 mt-2">
               Use your USD balance to fund virtual cards. Convert NGN to USD in the{' '}
-              <a href="/dashboard/wallet" className="font-bold text-[#d71927] hover:text-[#b81420] underline">
+              <Link
+                href="/dashboard/wallet"
+                className="font-bold text-[#d71927] hover:text-[#b81420] underline"
+              >
                 Wallet
-              </a>
+              </Link>
               .
             </p>
           </div>
@@ -266,26 +309,43 @@ export default function VirtualCardPage() {
         </div>
       </Card>
 
-      {/* Features Section (when no cards) */}
+      {/* Steps Section (when no cards) */}
       {isEmpty && (
         <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="p-6 sm:p-8">
-            <h2 className="text-2xl font-black text-gray-900 mb-8 text-center">
-              Why Virtual Cards?
-            </h2>
+            <div className="text-center mb-3">
+              <h2 className="text-2xl font-black text-gray-900">
+                How to Get Your Virtual Card
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Four simple steps from sign-up to spending worldwide.
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {features.map((feature, idx) => {
-                const Icon = feature.icon;
+              {steps.map((step, idx) => {
+                const Icon = step.icon;
                 return (
                   <div
                     key={idx}
-                    className="rounded-2xl border border-gray-200 bg-white p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+                    className="relative rounded-2xl border border-gray-200 bg-white p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
                   >
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${feature.bg} mb-4`}>
-                      <Icon className={`h-6 w-6 ${feature.color}`} />
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#d71927] text-sm font-extrabold text-white">
+                        {step.step}
+                      </div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                        <Icon className="h-5 w-5 text-red-600" />
+                      </div>
                     </div>
-                    <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">{feature.desc}</p>
+                    <h3 className="font-bold text-gray-900 mb-2">{step.title}</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">{step.desc}</p>
+                    {idx < steps.length - 1 && (
+                      <div className="absolute -right-2.5 top-1/2 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 lg:flex">
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -293,6 +353,45 @@ export default function VirtualCardPage() {
           </div>
         </Card>
       )}
+
+      {/* Card Terms & Limits */}
+      <Card className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 sm:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#d71927]">
+              <AlertCircle className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Card Terms & Limits</p>
+              <p className="text-xs text-gray-600">
+                Key rules to keep your virtual card active.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6 sm:p-8">
+          {cardTerms.map((term, idx) => {
+            const Icon = term.icon;
+            return (
+              <div
+                key={idx}
+                className="rounded-2xl border border-gray-200 bg-white p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50">
+                    <Icon className="h-5 w-5 text-red-600" />
+                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                    {term.label}
+                  </p>
+                </div>
+                <p className="text-xl font-black text-gray-900 mb-1">{term.value}</p>
+                <p className="text-sm text-gray-600 leading-relaxed">{term.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       {/* Fund/Withdraw Modal */}
       <CardActionModal

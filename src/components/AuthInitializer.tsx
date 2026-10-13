@@ -206,6 +206,14 @@ export const AuthInitializer: React.FC<{ children: React.ReactNode }> = ({ child
     // Priority 4-6: Role-based routing
     // IMPORTANT: Use activeRole for routing (respects user's role selection)
     // but validate it against user.roles for security
+    else if (pathname?.startsWith('/dashboard')) {
+      // Authenticated + verified users may stay on any customer dashboard
+      // page (/dashboard/*) regardless of role. Role-based destinations
+      // (admin → /admin, agent → /agent) apply everywhere else. This stops
+      // admins from being forcibly bounced out of e.g. /dashboard/wallet
+      // while still keeping non-staff out of /admin (validated by layouts).
+      correctDestination = null;
+    }
     else {
       // Determine the role to use for routing
       let roleToRoute: string | null = null;

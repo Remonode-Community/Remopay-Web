@@ -132,12 +132,12 @@ export const fxService = {
             return {
               transaction_reference: item.reference || item.transaction_reference || '',
               source: {
-                currency: isNgnToUsd ? 'NGN' as const : 'USD' as const,
+                currency: item.source_currency || (isNgnToUsd ? 'NGN' as const : 'USD' as const),
                 amount: isNgnToUsd ? Math.round(item.ngn_amount * 100) : Math.round(item.usd_amount * 100),
                 human_readable_amount: isNgnToUsd ? item.ngn_amount : item.usd_amount,
               },
               target: {
-                currency: isNgnToUsd ? 'USD' as const : 'NGN' as const,
+                currency: item.target_currency || (isNgnToUsd ? 'USD' as const : 'NGN' as const),
                 amount: isNgnToUsd ? Math.round(item.usd_amount * 100) : Math.round(item.ngn_amount * 100),
                 human_readable_amount: isNgnToUsd ? item.usd_amount : item.ngn_amount,
               },

@@ -97,15 +97,20 @@ export const useAuthStore = create<AuthStore>()(
           }
         }
 
-        set({
+        set((state) => ({
           user,
           isAuthenticated: !!user,
           error: null,
           isEmailVerified: user?.isEmailVerified || false,
           isPhoneVerified: user?.isPhoneVerified || false,
-          // Set activeRole to primary role (admin > agent > customer/user)
-          activeRole: primaryRole,
-        });
+          // Preserve an explicit role selection (RoleSwitcher) across user
+          // refreshes; only fall back to the primary role when no selection
+          // exists or it is no longer valid for this user.
+          activeRole:
+            state.activeRole && user?.roles?.includes(state.activeRole)
+              ? state.activeRole
+              : primaryRole,
+        }));
       },
 
       setAuthToken: (token) => {

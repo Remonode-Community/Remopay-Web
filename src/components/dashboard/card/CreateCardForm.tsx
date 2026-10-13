@@ -90,11 +90,7 @@ export const CreateCardForm: React.FC<CreateCardFormProps> = ({
   };
 
   const toggleExpanded = () => {
-    const next = !isExpanded;
-    setIsExpanded(next);
-    if (next && (!formData.amount || formData.amount === '0')) {
-      onFieldChange('amount', '5');
-    }
+    setIsExpanded(!isExpanded);
   };
 const feeAmount = feeLoading ? '...' : `$${(feeSchedule?.total_fee || 0).toFixed(2)}`;
 
@@ -139,7 +135,7 @@ const feeAmount = feeLoading ? '...' : `$${(feeSchedule?.total_fee || 0).toFixed
                   <label
                     key={brand}
                     className={`
-                      relative flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all
+                      relative flex flex-col sm:flex-row items-start sm:items-center gap-2.5 sm:gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all
                       ${formData.brand === brand
                         ? brand === 'VISA'
                           ? 'border-blue-500 bg-blue-50 shadow-sm'
@@ -166,8 +162,8 @@ const feeAmount = feeLoading ? '...' : `$${(feeSchedule?.total_fee || 0).toFixed
                         className="object-contain"
                       />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900">{brand}</p>
+                    <div className="w-full min-w-0 sm:w-auto sm:flex-1">
+                      <p className="text-sm font-bold text-gray-900 truncate">{brand}</p>
                       <p className="text-xs text-gray-500 truncate">
                         {brand === 'VISA' ? 'Global acceptance' : 'Widely accepted'}
                       </p>
@@ -192,55 +188,11 @@ const feeAmount = feeLoading ? '...' : `$${(feeSchedule?.total_fee || 0).toFixed
               )}
             </div>
 
-            {/* Initial Amount */}
-            <div>
-              <label htmlFor="amount" className="block text-sm font-bold text-gray-900 mb-2">
-                Initial Amount <span className="font-normal text-gray-500">(USD, optional)</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-lg">$</span>
-                <input
-                  id="amount"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={formData.amount}
-                  onChange={(e) => onFieldChange('amount', e.target.value)}
-                  disabled={isLoading || isSubmitting}
-                  placeholder="0"
-                  className="w-full rounded-xl border border-gray-300 bg-white py-3.5 pl-10 pr-4 text-base font-semibold text-gray-900 placeholder-gray-400 focus:border-[#d71927] focus:outline-none focus:ring-2 focus:ring-red-100 disabled:bg-gray-50 disabled:opacity-60 transition-colors"
-                />
-              </div>
-              {errors.amount && (
-                <div className="flex items-center gap-2 mt-2 text-red-600">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span className="text-sm">{errors.amount}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
-                <Info className="h-3.5 w-3.5" />
-                You can add funds anytime after creation. Minimum $1 for funding.
-              </div>
-            </div>
-
-            {/* Auto Approve Toggle */}
-            <div className="rounded-xl bg-gradient-to-r from-gray-50 to-gray-100/50 border border-gray-200 p-4">
-              <label className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">Auto Approve</p>
-                  <p className="text-xs text-gray-600 mt-0.5">Automatically approve all card transactions</p>
-                </div>
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={formData.autoApprove}
-                    onChange={(e) => onFieldChange('autoApprove', e.target.checked)}
-                    disabled={isLoading || isSubmitting}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-[#d71927] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
-                </div>
-              </label>
+            {/* Funding Note */}
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Info className="h-3.5 w-3.5 flex-shrink-0" />
+              Your card is created unfunded — you can add funds anytime after
+              creation. Minimum $1 for funding.
             </div>
 
             {/* Submit Button */}
