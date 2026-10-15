@@ -20,9 +20,11 @@ import {
 import { Card } from '@/components/shared/Card';
 import { Button } from '@/components/shared/Button';
 import { Toast } from '@/components/shared/Toast';
+import { LockedServiceView } from '@/components/dashboard/UpgradeRequiredCard';
 import { useUIStore } from '@/store/ui.store';
 import { useAuth } from '@/hooks/useAuth';
 import { useUsdAccount } from '@/hooks/useUsdAccount';
+import { isTierOneOrAbove } from '@/utils/tier.utils';
 import {
   EmploymentStatus,
   USResidencyStatus,
@@ -101,6 +103,8 @@ export default function USDAccountPage() {
   const customerId = useMemo(() => {
     return user?.mapleradCustomer?.maplerad_id || '';
   }, [user?.mapleradCustomer?.maplerad_id]);
+
+  const upgraded = isTierOneOrAbove(user?.mapleradCustomer?.tier);
 
   useEffect(() => {
     if (error) {
@@ -273,6 +277,7 @@ export default function USDAccountPage() {
   };
 
   const handleCreateAccount = async (e: React.FormEvent) => {
+    if (!upgraded) return;
     e.preventDefault();
 
     if (!customerId) {
@@ -348,6 +353,7 @@ export default function USDAccountPage() {
           <StepProgress />
         </div>
 
+        <LockedServiceView locked={!upgraded} service="USD virtual account">
         <form onSubmit={handleCreateAccount} className="space-y-8 p-6 sm:p-8">
           {currentStep === 1 && (
             <div className="space-y-6">
@@ -890,6 +896,7 @@ export default function USDAccountPage() {
             )}
           </div>
         </form>
+        </LockedServiceView>
       </Card>
 
       <Toast />

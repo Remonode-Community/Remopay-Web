@@ -17,9 +17,12 @@ import { Card } from '@/components/shared/Card';
 import { Toast } from '@/components/shared/Toast';
 import { CardSkeleton } from '@/components/shared/SkeletonLoader';
 import { useUsdWallet } from '@/hooks/useUsdWallet';
+import { useAuth } from '@/hooks/useAuth';
 import { walletService } from '@/services/wallet.service';
 import { fxService } from '@/services/fx.service';
+import { isTierOneOrAbove } from '@/utils/tier.utils';
 import { CurrencySelector } from '@/components/dashboard/fx/CurrencySelector';
+import { LockedServiceView } from '@/components/dashboard/UpgradeRequiredCard';
 import type { Currency } from '@/types/fx.types';
 import type { WalletCurrency } from '@/types/usd-wallet.types';
 import type { ParsedUsdTransaction } from '@/types/usd-wallet.types';
@@ -37,12 +40,15 @@ function srcBalance(c: Currency, ngnBal: number, usdBal: number): number {
 // ─── Main Component ─────────────────────────────────────────────────────
 
 export default function WalletPage() {
+  const { user } = useAuth();
   const {
     usdWalletState, fetchUsdWallet,
     parsedTransactions,
     conversion, quoteExpiresIn, setConversionDirection,
     setConversionAmount, generateQuote, executeExchange, resetConversion,
   } = useUsdWallet();
+
+  const upgraded = isTierOneOrAbove(user?.mapleradCustomer?.tier);
 
   const [ngnBal, setNgnBal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -176,6 +182,7 @@ export default function WalletPage() {
         <div className="grid gap-8 p-6 sm:p-8 xl:grid-cols-[1fr_320px]">
           {/* Left: Conversion Form */}
           <div className="space-y-5">
+            <LockedServiceView locked={!upgraded} service="FX conversion">
             {/* Currency selectors */}
             <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
               <CurrencySelector
@@ -328,6 +335,7 @@ export default function WalletPage() {
                 </button>
               </div>
             )}
+            </LockedServiceView>
 
             {/* USD Recent Activity */}
             <div className="pt-4">

@@ -7,12 +7,14 @@ import { useCards } from '@/hooks/useCards';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { useUsdWallet } from '@/hooks/useUsdWallet';
+import { isTierOneOrAbove } from '@/utils/tier.utils';
 import {
   CardList,
   CreateCardForm,
   CardFilterSection,
   CardActionModal,
 } from '@/components/dashboard/card';
+import { LockedServiceView } from '@/components/dashboard/UpgradeRequiredCard';
 import { Card } from '@/components/shared/Card';
 import {
   CreditCard,
@@ -33,6 +35,8 @@ export default function VirtualCardPage() {
   const { user } = useAuthStore();
   const { addToast } = useUIStore();
   const { usdWalletState, formattedUsdBalance, fetchUsdWallet } = useUsdWallet();
+
+  const upgraded = isTierOneOrAbove(user?.mapleradCustomer?.tier);
 
   const {
     cardListState,
@@ -275,16 +279,19 @@ export default function VirtualCardPage() {
           )}
 
           {/* Create Card Form */}
-          <CreateCardForm
-            formData={createFormData}
-            onFieldChange={updateCreateFormField}
-            onSubmit={async () => {
-              await createCard();
-            }}
-            errors={createFormErrors}
-            isLoading={isCreatingCard || cardListState.isLoading}
-            onSuccess={() => {}}
-          />
+          <LockedServiceView locked={!upgraded} service="virtual cards">
+            <CreateCardForm
+              formData={createFormData}
+              onFieldChange={updateCreateFormField}
+              onSubmit={async () => {
+                if (!upgraded) return;
+                await createCard();
+              }}
+              errors={createFormErrors}
+              isLoading={isCreatingCard || cardListState.isLoading}
+              onSuccess={() => {}}
+            />
+          </LockedServiceView>
 
           {/* Filters */}
           {hasCards && (
